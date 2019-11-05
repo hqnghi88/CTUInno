@@ -46,14 +46,19 @@ global {
 		//computed the connected components of the graph (for visualization purpose)
 		connected_components <- list<list<point>>(connected_components_of(road_network_clean));
 		loop times: length(connected_components) {colors << rnd_color(255);}
-		save road to:"../includes/CTURoads_clean.shp" type:shp;
+    }
+    reflex ss{
+    	
+		save road to:"../includes/CTURoads_clean.shp" type:shp  attributes: ["LANES":: lanes, "TYPE"::type];
     }
 }
 
 //Species to represent the roads
 species road {
+	int lanes<-1;
+	string type<-"";
 	aspect default {
-		draw shape color: #black;
+		draw shape+10 color: #black;
 	}
 }
 
@@ -64,11 +69,11 @@ experiment clean_network type: gui {
 //		create clean_road_network_model with:[split_lines::true,reduce_to_main_connected_components::false]; 
 //	}
 	output {
-		display network {
-			 overlay position: { 10, 100 } size: { 1000 #px, 60 #px } background: # black transparency: 0.5 border: #black rounded: true
-            {
-				draw legend color: #white font: font("SansSerif", 20, #bold) at: {40#px, 40#px, 1 };
-			}
+		display network type:java2D {
+//			 overlay position: { 10, 100 } size: { 1000 #px, 60 #px } background: # black transparency: 0.5 border: #black rounded: true
+//            {
+//				draw legend color: #white font: font("SansSerif", 20, #bold) at: {40#px, 40#px, 1 };
+//			}
 			species road ;
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {

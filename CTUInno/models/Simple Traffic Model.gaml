@@ -30,9 +30,9 @@ global {
 		create road from: road_shapefile;
 		
 		//Creation of the people agents
-		create people number: 2500{
+		create people number: 5000{
 			//People agents are located anywhere in one of the building
-			location <- any_location_in(one_of(building));
+			location <- any_location_in(one_of(road where(each.TYPE="main")));
       	}
       	//Weights of the road
       	road_weights <- road as_map (each::each.shape.perimeter);
@@ -59,13 +59,17 @@ species people skills: [moving]{
 	//Target point of the agent
 	point target;
 	//Probability of leaving the building
-	float leaving_proba <- 0.050; 
+	float leaving_proba <- 0.0005; 
 	//Speed of the agent
-	float speed <- 5+rnd(35) #km/#h;
+	float speed <- 1+rnd(5) #km/#h;
 	rgb color <- rnd_color(255);
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) and (flip(leaving_proba)) {
-		target <- any_location_in(one_of(building));
+		if(flip(0.5)){			
+			target <- any_location_in(one_of(building));
+		}else{
+			target <- any_location_in(one_of(road where(each.TYPE="main")));			
+		}
 	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
@@ -89,7 +93,7 @@ species people skills: [moving]{
 //		if(target != nil){
 //			draw line(location,target);
 //		}
-		draw circle(1) color: color;
+		draw circle(2) color: color;
 	}
 }
 //Species to represent the buildings
@@ -100,13 +104,15 @@ species building {
 }
 //Species to represent the roads
 species road {
+	int LANES<-1;
+	string TYPE<-"";
 	//Capacity of the road considering its perimeter
 	float capacity <- 1 + shape.perimeter/30;
 	//Number of people on the road
 	int nb_people <- 0 update: length(people at_distance 1);
 	//Speed coefficient computed using the number of people on the road and the capicity of the road
 	float speed_coeff <- 1.0 update:  exp(-nb_people/capacity) min: 0.1;
-	int buffer<-13;
+	int buffer<-10;
 	aspect default {
 		draw (shape + buffer * speed_coeff) color: #darkgray;
 	} 
