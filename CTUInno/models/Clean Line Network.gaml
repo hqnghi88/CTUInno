@@ -19,13 +19,13 @@ global {
 	bool clean_data <- true parameter: true;
 	
 	//tolerance for reconnecting nodes
-	float tolerance <- 1.0 parameter: true;
+	float tolerance <- 0.5 parameter: true;
 	
 	//if true, split the lines at their intersection
 	bool split_lines <- true parameter: true;
 	
 	//if true, keep only the main connected components of the network
-	bool reduce_to_main_connected_components <- false parameter: true;
+	bool reduce_to_main_connected_components <- true parameter: true;
 	
 	string legend <- not clean_data ? "Raw data" : ("Clean data : tolerance: " + tolerance + "; split_lines: " + split_lines + " ; reduce_to_main_connected_components:" + reduce_to_main_connected_components );
 	
@@ -73,7 +73,7 @@ experiment clean_network type: gui {
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
 					loop j from: 0 to: length(connected_components[i]) - 1 {
-						draw circle(2) color: colors[i] at: connected_components[i][j];	
+						draw circle(12) color: colors[i] at: connected_components[i][j];	
 					}
 				}
 			}

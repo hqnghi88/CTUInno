@@ -13,7 +13,6 @@ global {
 	file building_shapefile <- file("../includes/CTUBuildings.shp");
 	//Shapefile of the roads
 //	file road_shapefile <- file("../includes/CTURoads.shp");
-
 	file road_shapefile <- file("../includes/CTURoads_clean.shp");
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
@@ -31,9 +30,9 @@ global {
 		create road from: road_shapefile;
 		
 		//Creation of the people agents
-		create people number: 1000{
+		create people number: 2500{
 			//People agents are located anywhere in one of the building
-			location <- any_location_in(one_of(road));
+			location <- any_location_in(one_of(building));
       	}
       	//Weights of the road
       	road_weights <- road as_map (each::each.shape.perimeter);
@@ -46,13 +45,13 @@ global {
 	}
 	
 	//Reflex to decrease and diffuse the pollution of the environment
-	reflex pollution_evolution{
-		//ask all cells to decrease their level of pollution
-		ask cell {pollution <- pollution * 0.7;}
-		
-		//diffuse the pollutions to neighbor cells
-		diffuse var: pollution on: cell proportion: 0.9 ;
-	}
+//	reflex pollution_evolution{
+//		//ask all cells to decrease their level of pollution
+//		ask cell {pollution <- pollution * 0.7;}
+//		
+//		//diffuse the pollutions to neighbor cells
+//		diffuse var: pollution on: cell proportion: 0.9 ;
+//	}
 }
 
 //Species to represent the people using the skill moving
@@ -60,13 +59,13 @@ species people skills: [moving]{
 	//Target point of the agent
 	point target;
 	//Probability of leaving the building
-	float leaving_proba <- 1.0; 
+	float leaving_proba <- 0.050; 
 	//Speed of the agent
-	float speed <- 5 #km/#h;
+	float speed <- 5+rnd(15) #km/#h;
 	rgb color <- rnd_color(255);
 	//Reflex to leave the building to another building
-	reflex leave when: (target = nil){//} and (flip(leaving_proba)) {
-		target <- any_location_in(one_of(road));
+	reflex leave when: (target = nil) and (flip(leaving_proba)) {
+		target <- any_location_in(one_of(building));
 	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
@@ -74,11 +73,11 @@ species people skills: [moving]{
 		path path_followed <- goto (target: target, on: road_network, recompute_path: false, return_path: true, move_weights: road_weights);
 		
 		//if the path followed is not nil (i.e. the agent moved this step), we use it to increase the pollution level of overlapping cell
-		if (path_followed != nil ) {
-			ask (cell overlapping path_followed.shape) {
-				pollution <- pollution + 10.0;
-			}
-		}
+//		if (path_followed != nil ) {
+//			ask (cell overlapping path_followed.shape) {
+//				pollution <- pollution + 10.0;
+//			}
+//		}
 		
 		if (location = target) {
 			target <- nil;
@@ -87,7 +86,10 @@ species people skills: [moving]{
 	}
 	
 	aspect default {
-		draw circle(5) color: color;
+//		if(target != nil){
+//			draw line(location,target);
+//		}
+		draw circle(1) color: color;
 	}
 }
 //Species to represent the buildings
@@ -104,20 +106,20 @@ species road {
 	int nb_people <- 0 update: length(people at_distance 1);
 	//Speed coefficient computed using the number of people on the road and the capicity of the road
 	float speed_coeff <- 1.0 update:  exp(-nb_people/capacity) min: 0.1;
-	int buffer<-3;
+	int buffer<-13;
 	aspect default {
-		draw (shape + buffer * speed_coeff) color: #red;
+		draw (shape + buffer * speed_coeff) color: #darkgray;
 	} 
 }
 
 //cell use to compute the pollution in the environment
-grid cell height: 50 width: 50 neighbors: 8{
-	//pollution level
-	float pollution <- 0.0 min: 0.0 max: 100.0;
-	
-	//color updated according to the pollution level (from red - very polluted to green - no pollution)
-	rgb color <- #green update: rgb(255 *(pollution/30.0) , 255 * (1 - (pollution/30.0)), 255.0);
-}
+//grid cell height: 50 width: 50 neighbors: 8{
+//	//pollution level
+//	float pollution <- 0.0 min: 0.0 max: 100.0;
+//	
+//	//color updated according to the pollution level (from red - very polluted to green - no pollution)
+//	rgb color <- #green update: rgb(255 *(pollution/30.0) , 0 * (1 - (pollution/30.0)), 255.0);
+//}
 
 experiment traffic type: gui {
 	float minimum_cycle_duration <- 0.01;
@@ -128,7 +130,7 @@ experiment traffic type: gui {
 			species people ;
 			
 			//display the pollution grid in 3D using triangulation.
-			grid cell elevation: pollution * 3.0 triangulation: true transparency: 0.7;
+//			grid cell elevation: pollution * 3.0 triangulation: true transparency: 0.7;
 		
 		}
 	}
