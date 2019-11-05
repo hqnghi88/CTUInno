@@ -49,16 +49,17 @@ global {
     }
     reflex ss{
     	
-		save road to:"../includes/CTURoads_clean.shp" type:shp  attributes: ["LANES":: lanes, "TYPE"::type];
+		save road to:"../includes/CTURoads_clean.shp" type:shp  attributes: ["NAME"::name,"LANES":: lanes, "TYPE"::type];
     }
 }
 
 //Species to represent the roads
 species road {
+//	string name<-"";
 	int lanes<-1;
 	string type<-"";
 	aspect default {
-		draw shape+10 color: #black;
+		draw shape color: #black;
 	}
 }
 
