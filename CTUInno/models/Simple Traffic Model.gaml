@@ -12,7 +12,9 @@ global {
 	//Shapefile of the buildings
 	file building_shapefile <- file("../includes/CTUBuildings.shp");
 	//Shapefile of the roads
-	file road_shapefile <- file("../includes/CTURoads.shp");
+//	file road_shapefile <- file("../includes/CTURoads.shp");
+
+	file road_shapefile <- file("../includes/CTURoads_clean.shp");
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
 	//Step value
@@ -31,7 +33,7 @@ global {
 		//Creation of the people agents
 		create people number: 1000{
 			//People agents are located anywhere in one of the building
-			location <- any_location_in(one_of(building));
+			location <- any_location_in(one_of(road));
       	}
       	//Weights of the road
       	road_weights <- road as_map (each::each.shape.perimeter);
@@ -63,8 +65,8 @@ species people skills: [moving]{
 	float speed <- 5 #km/#h;
 	rgb color <- rnd_color(255);
 	//Reflex to leave the building to another building
-	reflex leave when: (target = nil) and (flip(leaving_proba)) {
-		target <- any_location_in(one_of(building));
+	reflex leave when: (target = nil){//} and (flip(leaving_proba)) {
+		target <- any_location_in(one_of(road));
 	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
