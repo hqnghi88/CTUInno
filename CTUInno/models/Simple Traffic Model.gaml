@@ -61,7 +61,7 @@ species people skills: [moving]{
 	//Probability of leaving the building
 	float leaving_proba <- 0.050; 
 	//Speed of the agent
-	float speed <- 5+rnd(15) #km/#h;
+	float speed <- 5+rnd(35) #km/#h;
 	rgb color <- rnd_color(255);
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) and (flip(leaving_proba)) {
