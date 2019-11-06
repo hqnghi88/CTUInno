@@ -54,7 +54,7 @@ global {
 		}
 
 		//Creation of the people agents
-		create people number: 50 {
+		create people number: 500 {
 		//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
@@ -86,19 +86,19 @@ species people skills: [moving] {
 	float leaving_proba_ori <- 0.5;
 	float leaving_proba <- leaving_proba_ori;
 	//Speed of the agent
-	float speed <- ((25 )/10.0) #km / #h;
+	float speed <- ((5 +rnd(5))/10.0) #km / #h;
 	geometry shape <-triangle(wsize);
 //	rgb color <- rnd_color(255);
 	float wsize <- 6.0 + rnd(1);
-	float perception_distance <- wsize*2 ;
+	float perception_distance <- wsize ;
 	geometry TL_area;
 	float csp <- speed;
 	rgb csd <- #green;
-	float max_accelerate<-2.0;
+	float max_accelerate<-1.0;
 	float accelerate<-0.0;
 	init {
-		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-//		location <- any_location_in(one_of(road));
+//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		location <- any_location_in(one_of(road));
 		target <- any_location_in(one_of(building));
 	}
 
@@ -118,16 +118,16 @@ species people skills: [moving] {
 		path path_followed <- goto(target: target,speed:csp, on: road_network, recompute_path: false, return_path: true);
 		
 		
-		TL_area <- (cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance));
-		list<people> v <- ((people-self) at_distance (perception_distance)) where (  (each overlaps TL_area));
+		TL_area <- (cone(heading - 35, heading + 35) intersection world.shape) intersection (circle(perception_distance));
+		list<people> v <- ((people - self) at_distance (perception_distance)) where ( (each overlaps TL_area) and (self.location distance_to each.location>wsize));//!(each.TL_area overlaps TL_area) and
 
 		//we use the return_path facet to return the path followed
 		if (length(v) > 0) {
 			accelerate<-0.0;
 			csd <- #darkred;
-			if (csp = speed) {
-				csp <- (v min_of each.csp);
-			}
+//			if (csp = speed) {
+				csp <- 0.1;//(v min_of each.csp);
+//			}
 
 		} else {
 			if(accelerate<max_accelerate){accelerate<-accelerate+0.1;}
