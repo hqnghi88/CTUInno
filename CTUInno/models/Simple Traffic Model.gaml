@@ -26,20 +26,46 @@ global {
 	//Initialization of the building using the shapefile of buildings
 		create building from: building_shapefile;
 		//Initialization of the road using the shapefile of roads
-		create road from: road_shapefile;
+		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))] {
+			switch DIRECTION {
+				match 0 {
+					color <- #green;
+				}
+
+				match 1 {
+					color <- #red;
+					//inversion of the road geometry
+					shape <- polyline(reverse(shape.points));
+				}
+
+				match 2 {
+					color <- #blue;
+					//bidirectional: creation of the inverse road
+					create road {
+						shape <- polyline(reverse(myself.shape.points));
+						DIRECTION <- 2;
+						color <- #blue;
+					}
+
+				}
+
+			}
+
+		}
 
 		//Creation of the people agents
-		create people number: 5000 {
+		create people number: 50 {
 		//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
 		road_weights <- road as_map (each::each.shape.perimeter);
-		road_network <- as_edge_graph(road);
+		//		road_network <- as_edge_graph(road);
+		road_network <- directed(as_edge_graph(road));
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
-		road_weights <- road as_map (each::each.shape.perimeter / each.speed_coeff);
-		road_network <- road_network with_weights road_weights;
+	//		road_weights <- road as_map (each::each.shape.perimeter / each.speed_coeff);
+	//		road_network <- road_network with_weights road_weights;
 	}
 
 	//Reflex to decrease and diffuse the pollution of the environment
@@ -57,14 +83,22 @@ species people skills: [moving] {
 //Target point of the agent
 	point target;
 	//Probability of leaving the building
-	float leaving_proba_ori <- 0.005;
-	float leaving_proba <-leaving_proba_ori;
+	float leaving_proba_ori <- 0.5;
+	float leaving_proba <- leaving_proba_ori;
 	//Speed of the agent
-	float speed <- 5 + rnd(5) #km / #h;
-	rgb color <- rnd_color(255);
-
+	float speed <- ((25 )/10.0) #km / #h;
+	geometry shape <-triangle(wsize);
+//	rgb color <- rnd_color(255);
+	float wsize <- 6.0 + rnd(1);
+	float perception_distance <- wsize*2 ;
+	geometry TL_area;
+	float csp <- speed;
+	rgb csd <- #green;
+	float max_accelerate<-2.0;
+	float accelerate<-0.0;
 	init {
 		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+//		location <- any_location_in(one_of(road));
 		target <- any_location_in(one_of(building));
 	}
 
@@ -81,8 +115,25 @@ species people skills: [moving] {
 	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
-	//we use the return_path facet to return the path followed
-		path path_followed <- goto(target: target, on: road_network, recompute_path: false, return_path: true, move_weights: road_weights);
+		path path_followed <- goto(target: target,speed:csp, on: road_network, recompute_path: false, return_path: true);
+		
+		
+		TL_area <- (cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance));
+		list<people> v <- ((people-self) at_distance (perception_distance)) where (  (each overlaps TL_area));
+
+		//we use the return_path facet to return the path followed
+		if (length(v) > 0) {
+			accelerate<-0.0;
+			csd <- #darkred;
+			if (csp = speed) {
+				csp <- (v min_of each.csp);
+			}
+
+		} else {
+			if(accelerate<max_accelerate){accelerate<-accelerate+0.1;}
+			csd <- #green;
+			csp <- speed+accelerate;
+		}
 
 		//if the path followed is not nil (i.e. the agent moved this step), we use it to increase the pollution level of overlapping cell
 		//		if (path_followed != nil ) {
@@ -90,16 +141,21 @@ species people skills: [moving] {
 		//				pollution <- pollution + 10.0;
 		//			}
 		//		}
-		if (location = target) {
+		if (self distance_to target < 0.0001) {
 			target <- nil;
 		} }
 
 	aspect default {
-	//		if(target != nil){
-	//			draw line(location,target);
-	//		}
-		draw circle(2) color: color;
+//			if(target != nil){
+//				draw line(location,target);
+//			}
+//		if (TL_area != nil) {
+//			draw TL_area color: csd empty: true depth: 0.5;
+//		}
+
+		draw triangle(wsize) rotate: heading + 90 color: csd;
 	} }
+
 	//Species to represent the buildings
 species building {
 
@@ -111,18 +167,19 @@ species building {
 //Species to represent the roads
 species road {
 	string NAME <- "";
+	int DIRECTION;
 	int LANES <- 1;
 	string TYPE <- "";
 	//Capacity of the road considering its perimeter
 	float capacity <- 1 + shape.perimeter / 30;
 	//Number of people on the road
-//	int nb_people <- 0 update: length(people at_distance 1);
+	//	int nb_people <- 0 update: length(people at_distance 1);
 	//Speed coefficient computed using the number of people on the road and the capicity of the road
-	float speed_coeff <- 1.0;// update: exp(-nb_people / capacity) min: 0.1;
+	float speed_coeff <- 1.0; // update: exp(-nb_people / capacity) min: 0.1;
 	int buffer <- 10;
 
 	aspect default {
-		draw (shape) color: #darkgray;// + buffer * speed_coeff)
+		draw (shape) color: #darkgray; // + buffer * speed_coeff)
 	}
 
 }
@@ -138,7 +195,7 @@ species road {
 experiment traffic type: gui {
 //	float minimum_cycle_duration <- 0.01;
 	output {
-		display carte type: opengl synchronized: true {
+		display carte type: opengl {//synchronized: true {
 			species building refresh: false;
 			species road;
 			species people;
