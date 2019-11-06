@@ -21,12 +21,37 @@ global {
 	graph road_network;
 	//Map containing all the weights for the road network graph
 	map<road, float> road_weights;
+	list<road> observe_road;
+	float trafficjam;
+	int nb_people <- 20;
+	int nb_speed <- 10;
+	float seed <- 0.014309877364273582;
 
 	init {
-	//Initialization of the building using the shapefile of buildings
+		write seed;
+		//Initialization of the building using the shapefile of buildings
 		create building from: building_shapefile;
 		//Initialization of the road using the shapefile of roads
-		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))] {
+		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
+		observe_road <- [road[35], road[36], road[2], road[50], road[47], road[45]];
+		//scenario 1 : gate A in, gate B out
+		ask road[3] {
+			self.DIRECTION <- 1;
+		}
+
+		ask road[36] {
+			self.DIRECTION <- 1;
+		}
+
+		ask road[5] {
+			self.DIRECTION <- 1;
+		}
+
+		ask road[49] {
+			self.DIRECTION <- 1;
+		}
+		//end scenario 1
+		ask road {
 			switch DIRECTION {
 				match 0 {
 					color <- #green;
@@ -64,13 +89,21 @@ global {
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
-	//		road_weights <- road as_map (each::each.shape.perimeter / each.speed_coeff);
-	//		road_network <- road_network with_weights road_weights;
+		trafficjam <- 0.0;
+		ask observe_road {
+			trafficjam <- trafficjam + length((people where (each.csd = #darkred)) where (each overlaps self));
+		}
+		if(cycle=2000) {
+			do pause;
+		}
+		//		road_weights <- road as_map (each::each.shape.perimeter / each.speed_coeff);
+		//		road_network <- road_network with_weights road_weights;
 	}
 
 	reflex generate_people when: flip(0.01) {
-		create people number: 10 {
-			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		create people number: nb_people {
+		//			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			location <- any_location_in(one_of([road[2], road[46]]));
 			target <- any_location_in(one_of(building));
 		}
 
@@ -94,7 +127,7 @@ species people skills: [moving] {
 	float leaving_proba <- leaving_proba_ori;
 	//Speed of the agent
 	float speed <- ((5 + rnd(5)) / 10.0) #km / #h;
-	geometry shape <- triangle(wsize);
+	geometry shape <- square(wsize);
 	//	rgb color <- rnd_color(255);
 	float wsize <- 6.0 + rnd(1);
 	float perception_distance <- wsize;
@@ -137,11 +170,11 @@ species people skills: [moving] {
 
 		} else {
 			if (accelerate < max_accelerate) {
-				accelerate <- accelerate + 0.1;
+				accelerate <- accelerate + 0.01;
 			}
 
 			csd <- #green;
-			csp <- speed + accelerate;
+			csp <- (nb_speed / 100) + accelerate;
 		}
 
 		//if the path followed is not nil (i.e. the agent moved this step), we use it to increase the pollution level of overlapping cell
@@ -156,24 +189,24 @@ species people skills: [moving] {
 		} }
 
 	aspect default {
-	//			if(target != nil){
-	//				draw line(location,target);
-	//			}
-	//		if (TL_area != nil) {
-	//			draw TL_area color: csd empty: true depth: 0.5;
-	//		}
-		draw triangle(wsize) rotate: heading + 90 color: csd;
+//		if (target != nil and int(self) = 190) {
+//			draw line(location, target);
+//		}
+		//		if (TL_area != nil) {
+		//			draw TL_area color: csd empty: true depth: 0.5;
+		//		}
+		draw shape rotate: heading + 90 color: csd;
 	} }
 
 	//Species to represent the buildings
 species building {
-	int capacity <- rnd(20);
+	int capacity <- rnd(10);
 
-	reflex time_off when: flip(0.001) {
+	reflex time_off when: flip(0.0005) {
 		create people number: capacity {
 			location <- any_location_in(one_of(road where (each.NAME != "3 Tháng 2")));
 			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-			purpose<-"go home";
+			purpose <- "go home";
 		}
 
 	}
@@ -212,15 +245,26 @@ species road {
 //	rgb color <- #green update: rgb(255 *(pollution/30.0) , 0 * (1 - (pollution/30.0)), 255.0);
 //}
 experiment traffic type: gui {
-//	float minimum_cycle_duration <- 0.01;
+	parameter "Number of people generated per 10 min" var: nb_people <- 20 min: 0 max: 200;
+	parameter "Maximum Average Speed" var: nb_speed <- 30 min: 0 max: 200;
+	//	parameter "voiture <-> moto" var: nb_moto <- 100 min: 0 max: 100;
+	//	float minimum_cycle_duration <- 0.01;
 	output {
-		display carte type: opengl { //synchronized: true {
+		display carte type: opengl synchronized: false camera_pos: {1063.0606, 1156.4411, 389.2278} camera_look_pos: {774.4739, 564.7507, -89.0491} camera_up_vector:
+		{-0.2577, 0.5283, 0.809} {
 			species building refresh: false;
 			species road;
 			species people;
 
 			//display the pollution grid in 3D using triangulation.
 			//			grid cell elevation: pollution * 3.0 triangulation: true transparency: 0.7;
+
+		}
+
+		display "Statistic" {
+			chart "Number of people stuck in traffic jams" type: series {
+				data "jam " value: trafficjam color: #red marker: false style: line;
+			}
 
 		}
 
