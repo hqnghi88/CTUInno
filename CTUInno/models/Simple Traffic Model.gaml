@@ -54,7 +54,7 @@ global {
 		}
 
 		//Creation of the people agents
-		create people number: 500 {
+		create people number: 200 {
 		//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
@@ -68,6 +68,13 @@ global {
 	//		road_network <- road_network with_weights road_weights;
 	}
 
+	reflex generate_people when: flip(0.01) {
+		create people number: 10 {
+			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			target <- any_location_in(one_of(building));
+		}
+
+	}
 	//Reflex to decrease and diffuse the pollution of the environment
 	//	reflex pollution_evolution{
 	//		//ask all cells to decrease their level of pollution
@@ -83,56 +90,58 @@ species people skills: [moving] {
 //Target point of the agent
 	point target;
 	//Probability of leaving the building
-	float leaving_proba_ori <- 0.5;
+	float leaving_proba_ori <- 0.005;
 	float leaving_proba <- leaving_proba_ori;
 	//Speed of the agent
-	float speed <- ((5 +rnd(5))/10.0) #km / #h;
-	geometry shape <-triangle(wsize);
-//	rgb color <- rnd_color(255);
+	float speed <- ((5 + rnd(5)) / 10.0) #km / #h;
+	geometry shape <- triangle(wsize);
+	//	rgb color <- rnd_color(255);
 	float wsize <- 6.0 + rnd(1);
-	float perception_distance <- wsize ;
+	float perception_distance <- wsize;
 	geometry TL_area;
 	float csp <- speed;
 	rgb csd <- #green;
-	float max_accelerate<-1.0;
-	float accelerate<-0.0;
+	float max_accelerate <- 1.0;
+	float accelerate <- 0.0;
+	string purpose <- "go to school";
+
 	init {
-//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+	//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 		location <- any_location_in(one_of(road));
 		target <- any_location_in(one_of(building));
 	}
 
 	//Reflex to leave the building to another building
-	reflex leave when: (target = nil) and (flip(leaving_proba)) {
-		if (flip(0.5)) {
-			leaving_proba <- leaving_proba_ori;
-			target <- any_location_in(one_of(building));
-		} else {
-			leaving_proba <- 0.5;
-			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-		}
-
-	}
+	//	reflex leave when: (target = nil) and (flip(leaving_proba)) {
+	//		if (flip(0.5)) {
+	//			leaving_proba <- leaving_proba_ori;
+	//			target <- any_location_in(one_of(building));
+	//		} else {
+	//			leaving_proba <- 0.5;
+	//			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+	//		}
+	//	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
-		path path_followed <- goto(target: target,speed:csp, on: road_network, recompute_path: false, return_path: true);
-		
-		
+		path path_followed <- goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: true);
 		TL_area <- (cone(heading - 35, heading + 35) intersection world.shape) intersection (circle(perception_distance));
-		list<people> v <- ((people - self) at_distance (perception_distance)) where ( (each overlaps TL_area) and (self.location distance_to each.location>wsize));//!(each.TL_area overlaps TL_area) and
+		list<people> v <- (((people - self) at_distance (perception_distance)) where (self.location distance_to each.location > wsize)) where (each overlaps TL_area); //!(each.TL_area overlaps TL_area) and
 
 		//we use the return_path facet to return the path followed
 		if (length(v) > 0) {
-			accelerate<-0.0;
+			accelerate <- 0.0;
 			csd <- #darkred;
-//			if (csp = speed) {
-				csp <- 0.1;//(v min_of each.csp);
-//			}
+			//			if (csp = speed) {
+			csp <- 0.1; //(v min_of each.csp);
+			//			}
 
 		} else {
-			if(accelerate<max_accelerate){accelerate<-accelerate+0.1;}
+			if (accelerate < max_accelerate) {
+				accelerate <- accelerate + 0.1;
+			}
+
 			csd <- #green;
-			csp <- speed+accelerate;
+			csp <- speed + accelerate;
 		}
 
 		//if the path followed is not nil (i.e. the agent moved this step), we use it to increase the pollution level of overlapping cell
@@ -143,21 +152,31 @@ species people skills: [moving] {
 		//		}
 		if (self distance_to target < 0.0001) {
 			target <- nil;
+			do die;
 		} }
 
 	aspect default {
-//			if(target != nil){
-//				draw line(location,target);
-//			}
-//		if (TL_area != nil) {
-//			draw TL_area color: csd empty: true depth: 0.5;
-//		}
-
+	//			if(target != nil){
+	//				draw line(location,target);
+	//			}
+	//		if (TL_area != nil) {
+	//			draw TL_area color: csd empty: true depth: 0.5;
+	//		}
 		draw triangle(wsize) rotate: heading + 90 color: csd;
 	} }
 
 	//Species to represent the buildings
 species building {
+	int capacity <- rnd(20);
+
+	reflex time_off when: flip(0.001) {
+		create people number: capacity {
+			location <- any_location_in(one_of(road where (each.NAME != "3 Tháng 2")));
+			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			purpose<-"go home";
+		}
+
+	}
 
 	aspect default {
 		draw shape color: #gray;
@@ -195,7 +214,7 @@ species road {
 experiment traffic type: gui {
 //	float minimum_cycle_duration <- 0.01;
 	output {
-		display carte type: opengl {//synchronized: true {
+		display carte type: opengl { //synchronized: true {
 			species building refresh: false;
 			species road;
 			species people;
