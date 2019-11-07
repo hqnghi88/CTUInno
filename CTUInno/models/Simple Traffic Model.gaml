@@ -25,7 +25,8 @@ global {
 	float trafficjam;
 	int nb_people <- 20;
 	int nb_speed <- 10;
-	float seed <- 0.014309877364273582;
+	string scenario_type <- "A in B out" among: ["A in B out", "current"];
+	float seed <- 0.4450924241567986;
 
 	init {
 		write seed;
@@ -34,23 +35,26 @@ global {
 		//Initialization of the road using the shapefile of roads
 		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
 		observe_road <- [road[35], road[36], road[2], road[50], road[47], road[45]];
+		if (scenario_type = "A in B out") {
 		//scenario 1 : gate A in, gate B out
-		ask road[3] {
-			self.DIRECTION <- 1;
+			ask road[3] {
+				self.DIRECTION <- 1;
+			}
+
+			ask road[36] {
+				self.DIRECTION <- 1;
+			}
+
+			ask road[5] {
+				self.DIRECTION <- 1;
+			}
+
+			ask road[49] {
+				self.DIRECTION <- 1;
+			}
+			//end scenario 1
 		}
 
-		ask road[36] {
-			self.DIRECTION <- 1;
-		}
-
-		ask road[5] {
-			self.DIRECTION <- 1;
-		}
-
-		ask road[49] {
-			self.DIRECTION <- 1;
-		}
-		//end scenario 1
 		ask road {
 			switch DIRECTION {
 				match 0 {
@@ -93,17 +97,18 @@ global {
 		ask observe_road {
 			trafficjam <- trafficjam + length((people where (each.csd = #darkred)) where (each overlaps self));
 		}
-		if(cycle=2000) {
-			do pause;
-		}
+
+		//		if (cycle = 2000) {
+		//			do pause;
+		//		}
 		//		road_weights <- road as_map (each::each.shape.perimeter / each.speed_coeff);
 		//		road_network <- road_network with_weights road_weights;
 	}
 
 	reflex generate_people when: flip(0.01) {
 		create people number: nb_people {
-		//			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-			location <- any_location_in(one_of([road[2], road[46]]));
+			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			//				location <- any_location_in(one_of([road[2],road[2], road[46]]));
 			target <- any_location_in(one_of(building));
 		}
 
@@ -134,6 +139,7 @@ species people skills: [moving] {
 	geometry TL_area;
 	float csp <- speed;
 	rgb csd <- #green;
+	float min_accelerate <- 0.1;
 	float max_accelerate <- 1.0;
 	float accelerate <- 0.0;
 	string purpose <- "go to school";
@@ -157,16 +163,20 @@ species people skills: [moving] {
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
 		path path_followed <- goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: true);
-		TL_area <- (cone(heading - 35, heading + 35) intersection world.shape) intersection (circle(perception_distance));
-		list<people> v <- (((people - self) at_distance (perception_distance)) where (self.location distance_to each.location > wsize)) where (each overlaps TL_area); //!(each.TL_area overlaps TL_area) and
+		TL_area <- ((cone(heading - 10, heading + 10) intersection world.shape) intersection (circle(perception_distance)) - shape);
+		list<people> v <- (((people - self) at_distance (perception_distance))) where (each overlaps TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
 
 		//we use the return_path facet to return the path followed
-		if (length(v) > 0) {
-			accelerate <- 0.0;
+		if (length(v) > 2) {
 			csd <- #darkred;
-			//			if (csp = speed) {
-			csp <- 0.1; //(v min_of each.csp);
-			//			}
+			float tmp <- v min_of each.csp;
+			if (csp > tmp) {
+				csp <- tmp;
+			}
+
+			if (csp > min_accelerate) {
+				csp <- csp - 0.001;
+			}
 
 		} else {
 			if (accelerate < max_accelerate) {
@@ -189,19 +199,18 @@ species people skills: [moving] {
 		} }
 
 	aspect default {
-//		if (target != nil and int(self) = 190) {
-//			draw line(location, target);
-//		}
-		//		if (TL_area != nil) {
-		//			draw TL_area color: csd empty: true depth: 0.5;
-		//		}
-		draw shape rotate: heading + 90 color: csd;
+	//		if (target != nil and int(self) = 190) {
+	//			draw line(location, target);
+	//		}
+	//		if (TL_area != nil) {
+	//			draw TL_area color: csd empty: true depth: 0.5;
+	//		}
+		draw shape empty: true rotate: heading + 90 color: csd;
 	} }
 
 	//Species to represent the buildings
 species building {
-	int capacity <- rnd(10);
-
+	int capacity <- int(nb_people / 2); //rnd(50);
 	reflex time_off when: flip(0.0005) {
 		create people number: capacity {
 			location <- any_location_in(one_of(road where (each.NAME != "3 Tháng 2")));
@@ -245,12 +254,13 @@ species road {
 //	rgb color <- #green update: rgb(255 *(pollution/30.0) , 0 * (1 - (pollution/30.0)), 255.0);
 //}
 experiment traffic type: gui {
-	parameter "Number of people generated per 10 min" var: nb_people <- 20 min: 0 max: 200;
-	parameter "Maximum Average Speed" var: nb_speed <- 30 min: 0 max: 200;
+	parameter "Scenario" var: scenario_type;
+	parameter "Number of people generated per 10 min" var: nb_people <- 35 min: 0 max: 50;
+	parameter "Maximum Average Speed" var: nb_speed <- 25 min: 0 max: 100;
 	//	parameter "voiture <-> moto" var: nb_moto <- 100 min: 0 max: 100;
 	//	float minimum_cycle_duration <- 0.01;
 	output {
-		display carte type: opengl synchronized: false camera_pos: {1063.0606, 1156.4411, 389.2278} camera_look_pos: {774.4739, 564.7507, -89.0491} camera_up_vector:
+		display carte type: opengl synchronized: true camera_pos: {1063.0606, 1156.4411, 389.2278} camera_look_pos: {774.4739, 564.7507, -89.0491} camera_up_vector:
 		{-0.2577, 0.5283, 0.809} {
 			species building refresh: false;
 			species road;
@@ -261,12 +271,12 @@ experiment traffic type: gui {
 
 		}
 
-		display "Statistic" {
-			chart "Number of people stuck in traffic jams" type: series {
-				data "jam " value: trafficjam color: #red marker: false style: line;
-			}
-
-		}
+		//		display "Statistic" {
+		//			chart "Number of people stuck in traffic jams" type: series {
+		//				data "jam " value: trafficjam color: #red marker: false style: line;
+		//			}
+		//
+		//		}
 
 	}
 
