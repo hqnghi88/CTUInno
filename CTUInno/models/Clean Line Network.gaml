@@ -58,7 +58,7 @@ global {
 species road {
 //	string name<-"";
 	int DIRECTION;
-	int LANES<-1;
+	int LANES<-4;
 	string TYPE<-"";
 	aspect default {
 		draw shape+10 color: #black;
