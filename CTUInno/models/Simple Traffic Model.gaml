@@ -89,10 +89,10 @@ global {
 		//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
-		road_weights <- road as_map (each::each.capacity);
+		//		road_weights <- road as_map (each::each.capacity);
 		//		road_network <- as_edge_graph(road);
 		road_network <- directed(as_edge_graph(road));
-		//		road_network <- road_network with_optimizer_type optimizer_type;
+		road_network <- road_network with_optimizer_type optimizer_type;
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
@@ -104,8 +104,8 @@ global {
 		//		if (cycle = 2000) {
 		//			do pause;
 		//		}
-		road_weights <- road as_map (each::(each.capacity - each.nb_people));
-		road_network <- road_network with_weights road_weights;
+		//		road_weights <- road as_map (each::(each.capacity - each.nb_people));
+		//		road_network <- road_network with_weights road_weights;
 	}
 
 	reflex generate_people when: flip(0.01) {
@@ -141,9 +141,9 @@ species people skills: [moving] {
 	geometry shape <- triangle(wsize);
 	float perception_distance <- wsize * 1.5;
 	geometry TL_area;
-	float csp <- ((nb_speed / 50) #km / #h);
+	float csp <- ((nb_speed / 20) #km / #h);
 	rgb csd <- #green;
-	float min_accelerate <- 0.1;
+	float min_speed <- 0.1;
 	float max_accelerate <- 0.1;
 	float accelerate <- 0.0;
 	string purpose <- "go to school";
@@ -169,29 +169,33 @@ species people skills: [moving] {
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
 	//		path path_followed <-
-		do goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: false, move_weights: road_weights);
-		TL_area <- ((cone(heading - 15, heading + 15) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
+		do goto(target: target, speed: csp, on: road_network, recompute_path: true, return_path: false); //, move_weights: road_weights);
+		TL_area <- ((cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
 		list<people> v <- (((people - self) at_distance (perception_distance))) where (each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
 		//		list<people> vv<-v where (each.current_edge = self.current_edge);
 		//we use the return_path facet to return the path followed
 		if (current_edge != nil) {
-			if ((length(v) > ((current_edge as road).LANES+current_edge.perimeter/15))) {
+			if ((length(v) > ((current_edge as road).LANES))) {
 				csd <- #darkred;
-				float tmp <- v min_of each.csp;
-				if (csp > tmp) {
-					csp <- tmp;
-				}
+//				float tmp <- v min_of each.csp;
+//				if (csp > tmp) {
+//					csp <- tmp;
+//				}
 
-				//			if (csp > min_accelerate) {
-				//				csp <- csp - 0.001;
-				//			}
+				if (csp > min_speed and csp - 0.05 >0) {
+					csp <- csp - 0.05;
+				}
 
 			} else {
 			//				if (accelerate < max_accelerate) {
 			//					accelerate <- accelerate + 0.01;
 			//				}
 				csd <- #green;
-				csp <- ((nb_speed/50) #km / #h); /// + accelerate;
+				if((csp<(nb_speed / 20) #km / #h)){
+					csp<-csp+0.1;
+				}
+				
+//				csp <- ((nb_speed / 10) #km / #h); /// + accelerate;
 			}
 
 		}
@@ -215,9 +219,9 @@ species people skills: [moving] {
 	//		if (target != nil and int(self) = 190) {
 	//			draw line(location, target);
 	//		}
-	//		if (TL_area != nil) {
-	//			draw TL_area color: csd empty: true;
-	//		}
+			if (TL_area != nil) {
+				draw TL_area color: csd empty: true;
+			}
 		draw shape empty: false rotate: heading + 90 color: csd;
 	} }
 
@@ -244,9 +248,9 @@ species road {
 	int LANES <- 1;
 	string TYPE <- "";
 	//Capacity of the road considering its perimeter
-	float capacity <- float(number_people);
+	//	float capacity <- float(number_people);
 	//Number of people on the road
-	int nb_people <- 0 update: length((people at_distance 1) where (each overlaps self));
+	//	int nb_people <- 0 update: length((people at_distance 1) where (each overlaps self));
 	//Speed coefficient computed using the number of people on the road and the capicity of the road
 	//	float speed_coeff <- 1.0 update: exp(-nb_people / capacity) min: 0.1;
 	//	int buffer <- 10;
