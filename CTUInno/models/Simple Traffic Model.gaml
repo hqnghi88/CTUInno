@@ -95,7 +95,7 @@ global {
 		create people number: 500 {
 		}
 
-		create people number: 50 {
+		create people number: 150 {
 			purpose <- "go around";
 			//People agents are located anywhere in one of the building
 		}
@@ -173,14 +173,14 @@ species people skills: [moving] {
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) { //and (flip(leaving_proba)) {
 	//		tick <- tick + 1;
-		if (purpose = "go to school" and (cycle mod 1000 >= 500)) {
+		if (purpose = "go to school" and (cycle mod 2000 >= 1000)) {
 		//			leaving_proba <- 0.5;
 		//			tick <- 0.0;
 			purpose <- "go home";
 			target <- home; // any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 		}
 
-		if (purpose = "go home" and (cycle mod 1000 < 400)) {
+		if (purpose = "go home" and (cycle mod 2000 < 1000)) {
 		//			leaving_proba <- leaving_proba_ori;
 			purpose <- "go to school";
 			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
@@ -199,12 +199,13 @@ species people skills: [moving] {
 	reflex move when: target != nil {
 	//		path path_followed <-
 		do goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: false); //, move_weights: road_weights);
-		TL_area <- ((cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
-		list<people> v <- (((people - self) at_distance (perception_distance))) where ( each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
+		if(destination=nil) {return;}
+//		TL_area <- ((cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
+		list<people> v <- ((people - self) at_distance (perception_distance)) overlapping destination;//(((people - self) at_distance (perception_distance))) where ( each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
 		//		list<people> vv<-v where (each.current_edge = self.current_edge);
 		//we use the return_path facet to return the path followed
 		if (current_edge != nil) {
-			if ((length(v) > ((current_edge as road).LANES))) {
+			if ((length(v) > 0)){//((current_edge as road).LANES))) {
 				csd <- #darkred;
 				float tmp <- v min_of each.csp;
 				if (csp > tmp) {
@@ -248,12 +249,12 @@ species people skills: [moving] {
 		} }
 
 	aspect default {
-	//		if (target != nil and int(self) = 190) {
-	//			draw line(location, target);
-	//		}
-	//			if (TL_area != nil) {
-	//				draw TL_area color: csd empty: true;
-	//			}
+//			if (target != nil ) {
+//				draw line(location, destination) color:rnd_color(255);
+//			}
+//				if (TL_area != nil) {
+//					draw TL_area color: csd empty: true;
+//				}
 		draw shape empty: true rotate: heading + 90 color: csd;
 	} }
 
