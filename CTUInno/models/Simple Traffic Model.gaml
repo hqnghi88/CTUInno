@@ -95,7 +95,7 @@ global {
 		create people number: 500 {
 		}
 
-		create people number: 150 {
+		create people number: 50 {
 			purpose <- "go around";
 			//People agents are located anywhere in one of the building
 		}
@@ -225,9 +225,9 @@ species people skills: [moving] {
 					csp <- ((nb_speed / 20) #km / #h); /// + accelerate;
 				}
 
-				if ((csp + 0.25 <= max_accelerate)) {
-					csp <- csp + 0.25;
-				}
+//				if ((csp + 0.25 <= max_accelerate)) {
+//					csp <- csp + 0.25;
+//				}
 
 			}
 
@@ -321,8 +321,7 @@ experiment traffic type: gui {
 
 		}
 
-		display carte type: opengl synchronized: false camera_pos: {1063.0606, 1156.4411, 389.2278} camera_look_pos: {774.4739, 564.7507, -89.0491} camera_up_vector:
-		{-0.2577, 0.5283, 0.809} {
+		display carte type: opengl synchronized: false camera_pos: {1454.3533,566.1281,327.6882} camera_look_pos: {779.8495,554.3546,-127.3225} camera_up_vector: {-0.5591,0.0098,0.829} {
 			species building refresh: false;
 			species road;
 			species people;
