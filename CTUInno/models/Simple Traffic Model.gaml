@@ -27,8 +27,7 @@ global {
 	int nb_speed;
 	string optimizer_type <- "NBAStarApprox" among: ["NBAStar", "NBAStarApprox", "Dijkstra", "AStar", "BellmannFord", "FloydWarshall"];
 	string scenario_type <- "A in B out" among: ["A in B out", "current"];
-	float seed <- 0.8519789490243869;
-
+		float seed <- 0.22041988;
 	init {
 		write seed;
 		//Initialization of the building using the shapefile of buildings
@@ -73,7 +72,9 @@ global {
 					color <- #blue;
 					//bidirectional: creation of the inverse road
 					create road {
-						shape <- polyline(reverse(myself.shape.points));
+						shape <- polyline(reverse(myself.shape.points)) translated_by {10, 0};
+						shape.points[0] <- myself.shape.points[length(myself.shape.points) - 1];
+						shape.points[length(shape.points) - 1] <- myself.shape.points[0];
 						DIRECTION <- 2;
 						color <- #blue;
 					}
@@ -86,13 +87,16 @@ global {
 
 		//Creation of the people agents
 		create people number: 500 {
+		}
+		create people number: 50 {
+			purpose<-"go around";
 		//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
 		//		road_weights <- road as_map (each::each.capacity);
 		//		road_network <- as_edge_graph(road);
 		road_network <- directed(as_edge_graph(road));
-		road_network <- road_network with_optimizer_type optimizer_type;
+		//		road_network <- road_network with_optimizer_type optimizer_type;
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
@@ -108,14 +112,13 @@ global {
 		//		road_network <- road_network with_weights road_weights;
 	}
 
-	reflex generate_people when: flip(0.01) {
+	//	reflex generate_people when: flip(0.01) {
 	//		create people number: nb_people {
 	//			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 	//			//				location <- any_location_in(one_of([road[2],road[2], road[46]]));
 	//			target <- any_location_in(one_of(building));
 	//		}
-
-	}
+	//	}
 	//Reflex to decrease and diffuse the pollution of the environment
 	//	reflex pollution_evolution{
 	//		//ask all cells to decrease their level of pollution
@@ -129,10 +132,12 @@ global {
 //Species to represent the people using the skill moving
 species people skills: [moving] {
 //Target point of the agent
+	point home;
+	point class;
 	point target;
 	//Probability of leaving the building
-	float leaving_proba_ori <- 0.05;
-	float leaving_proba <- leaving_proba_ori;
+	//	float leaving_proba_ori <- 0.0000005;
+	//	float leaving_proba <- leaving_proba_ori;
 	//Speed of the agent
 	//	float speed <- (nb_speed/10)  #km / #h; // (10.0 / 10.0) #km / #h;
 	//	rgb color <- rnd_color(255);
@@ -144,58 +149,78 @@ species people skills: [moving] {
 	float csp <- ((nb_speed / 20) #km / #h);
 	rgb csd <- #green;
 	float min_speed <- 0.1;
-	float max_accelerate <- 0.1;
+	float max_accelerate <- 1.2;
 	float accelerate <- 0.0;
-	string purpose <- "go to school";
+	string purpose <- "go home";
+	float work_time <- 120.0 + rnd(30);
+	float rest_time <- 20.0 + rnd(30);
+//	float tick <- 0.0;
 
 	init {
 	//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		home <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		class <- any_location_in(one_of(building));
 		location <- any_location_in(one_of(road));
-		target <- any_location_in(one_of(building));
+		target <-nil;// any_location_in(one_of(building));
 	}
 
 	//Reflex to leave the building to another building
-	reflex leave when: (target = nil) and (flip(leaving_proba)) {
-		if (flip(0.5)) {
-			leaving_proba <- leaving_proba_ori;
-			target <- any_location_in(one_of(building));
-		} else {
-			leaving_proba <- 0.5;
+	reflex leave when: (target = nil) { //and (flip(leaving_proba)) {
+//		tick <- tick + 1;
+
+		if (purpose = "go to school" and (cycle mod 2000 >= 1200)) {
+		//			leaving_proba <- 0.5;
+//			tick <- 0.0;
 			purpose <- "go home";
-			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			target <- home; // any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 		}
+		if (purpose = "go home" and (cycle mod 2000 < 700)) {
+		//			leaving_proba <- leaving_proba_ori;
+			purpose <- "go to school";
+//			tick <- 0.0;
+			target <- class; // any_location_in(one_of(building));
+		}
+		if (purpose = "go around") {
+		//			leaving_proba <- leaving_proba_ori;
+//			tick <- 0.0;
+			target <-  any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		}
+		
 
 	}
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
 	//		path path_followed <-
-		do goto(target: target, speed: csp, on: road_network, recompute_path: true, return_path: false); //, move_weights: road_weights);
+		do goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: false); //, move_weights: road_weights);
 		TL_area <- ((cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
-		list<people> v <- (((people - self) at_distance (perception_distance))) where (each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
+		list<people> v <- (((people - self) at_distance (perception_distance))) where (each.target!=nil and each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
 		//		list<people> vv<-v where (each.current_edge = self.current_edge);
 		//we use the return_path facet to return the path followed
 		if (current_edge != nil) {
 			if ((length(v) > ((current_edge as road).LANES))) {
 				csd <- #darkred;
-//				float tmp <- v min_of each.csp;
-//				if (csp > tmp) {
-//					csp <- tmp;
-//				}
+				float tmp <- v min_of each.csp;
+				if (csp > tmp) {
+					csp <- tmp;
+				}
 
-				if (csp > min_speed and csp - 0.05 >0) {
-					csp <- csp - 0.05;
+				if (csp - 0.05 > min_speed) {
+					csp <- csp - 0.1;
 				}
 
 			} else {
 			//				if (accelerate < max_accelerate) {
 			//					accelerate <- accelerate + 0.01;
 			//				}
-				csd <- #green;
-				if((csp<(nb_speed / 20) #km / #h)){
-					csp<-csp+0.1;
+				if (csd = #darkred) {
+					csd <- #green;
+					csp <- ((nb_speed / 20) #km / #h); /// + accelerate;
 				}
-				
-//				csp <- ((nb_speed / 10) #km / #h); /// + accelerate;
+
+				if ((csp + 0.25 <= max_accelerate)) {
+					csp <- csp + 0.25;
+				}
+
 			}
 
 		}
@@ -209,9 +234,9 @@ species people skills: [moving] {
 		if (self distance_to target < 0.0001) {
 			location <- target;
 			target <- nil;
-			if (purpose = "go home") {
+			//			if (purpose = "go home") {
 			//				do die;
-			}
+			//			}
 
 		} }
 
@@ -219,10 +244,10 @@ species people skills: [moving] {
 	//		if (target != nil and int(self) = 190) {
 	//			draw line(location, target);
 	//		}
-			if (TL_area != nil) {
-				draw TL_area color: csd empty: true;
-			}
-		draw shape empty: false rotate: heading + 90 color: csd;
+	//			if (TL_area != nil) {
+	//				draw TL_area color: csd empty: true;
+	//			}
+		draw shape empty: true rotate: heading + 90 color: csd;
 	} }
 
 	//Species to represent the buildings
@@ -255,7 +280,7 @@ species road {
 	//	float speed_coeff <- 1.0 update: exp(-nb_people / capacity) min: 0.1;
 	//	int buffer <- 10;
 	aspect default {
-		draw (shape + LANES) color: #darkgray; // + buffer * speed_coeff)
+		draw (shape) color: #darkgray; // + buffer * speed_coeff)
 	}
 
 }
