@@ -27,7 +27,8 @@ global {
 	int nb_speed;
 	string optimizer_type <- "NBAStarApprox" among: ["NBAStar", "NBAStarApprox", "Dijkstra", "AStar", "BellmannFord", "FloydWarshall"];
 	string scenario_type <- "A in B out" among: ["A in B out", "current"];
-		float seed <- 0.22041988;
+	float seed <- 0.22041988;
+
 	init {
 		write seed;
 		//Initialization of the building using the shapefile of buildings
@@ -70,6 +71,11 @@ global {
 
 				match 2 {
 					color <- #blue;
+					point p0<-shape.points[0];
+					point p1<-shape.points[length(shape.points) - 1];
+						shape <- shape translated_by {-5, 0};
+						shape.points[0] <- p0;
+						shape.points[length(shape.points) - 1] <-p1;
 					//bidirectional: creation of the inverse road
 					create road {
 						shape <- polyline(reverse(myself.shape.points)) translated_by {10, 0};
@@ -88,9 +94,10 @@ global {
 		//Creation of the people agents
 		create people number: 500 {
 		}
+
 		create people number: 50 {
-			purpose<-"go around";
-		//People agents are located anywhere in one of the building
+			purpose <- "go around";
+			//People agents are located anywhere in one of the building
 		}
 		//Weights of the road
 		//		road_weights <- road as_map (each::each.capacity);
@@ -154,38 +161,38 @@ species people skills: [moving] {
 	string purpose <- "go home";
 	float work_time <- 120.0 + rnd(30);
 	float rest_time <- 20.0 + rnd(30);
-//	float tick <- 0.0;
-
+	//	float tick <- 0.0;
 	init {
 	//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-		home <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-		class <- any_location_in(one_of(building));
+		home <- any_location_in(one_of(building where (each.building = "house")));
+		class <- any_location_in(one_of(building where (each.building != "house")));
 		location <- any_location_in(one_of(road));
-		target <-nil;// any_location_in(one_of(building));
+		target <- nil; // any_location_in(one_of(building));
 	}
 
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) { //and (flip(leaving_proba)) {
-//		tick <- tick + 1;
-
-		if (purpose = "go to school" and (cycle mod 2000 >= 1200)) {
+	//		tick <- tick + 1;
+		if (purpose = "go to school" and (cycle mod 1000 >= 500)) {
 		//			leaving_proba <- 0.5;
-//			tick <- 0.0;
+		//			tick <- 0.0;
 			purpose <- "go home";
 			target <- home; // any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 		}
-		if (purpose = "go home" and (cycle mod 2000 < 700)) {
+
+		if (purpose = "go home" and (cycle mod 1000 < 400)) {
 		//			leaving_proba <- leaving_proba_ori;
 			purpose <- "go to school";
-//			tick <- 0.0;
+			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+			//			tick <- 0.0;
 			target <- class; // any_location_in(one_of(building));
 		}
+
 		if (purpose = "go around") {
 		//			leaving_proba <- leaving_proba_ori;
-//			tick <- 0.0;
-			target <-  any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+		//			tick <- 0.0;
+			target <- any_location_in(one_of(road));
 		}
-		
 
 	}
 	//Reflex to move to the target building moving on the road network
@@ -193,7 +200,7 @@ species people skills: [moving] {
 	//		path path_followed <-
 		do goto(target: target, speed: csp, on: road_network, recompute_path: false, return_path: false); //, move_weights: road_weights);
 		TL_area <- ((cone(heading - 25, heading + 25) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
-		list<people> v <- (((people - self) at_distance (perception_distance))) where (each.target!=nil and each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
+		list<people> v <- (((people - self) at_distance (perception_distance))) where ( each.shape intersects TL_area); //!(each.TL_area overlaps TL_area) and each.current_edge = self.current_edge and
 		//		list<people> vv<-v where (each.current_edge = self.current_edge);
 		//we use the return_path facet to return the path followed
 		if (current_edge != nil) {
@@ -252,6 +259,7 @@ species people skills: [moving] {
 
 	//Species to represent the buildings
 species building {
+	string building;
 	int capacity <- int(number_people / 2); //rnd(50);
 	//	reflex time_off when: flip(0.0005) {
 	//		create people number: capacity {
