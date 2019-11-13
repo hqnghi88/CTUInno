@@ -9,7 +9,7 @@ model clean_road_network
 
 global {
 	//Shapefile of the roads
-	file road_shapefile <- file("../includes/CTURoads.shp");
+	file road_shapefile <- file("../includes/CTURoads2.shp");
 	
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
@@ -25,7 +25,7 @@ global {
 	bool split_lines <- true parameter: true;
 	
 	//if true, keep only the main connected components of the network
-	bool reduce_to_main_connected_components <- true parameter: true;
+	bool reduce_to_main_connected_components <- false parameter: true;
 	
 	string legend <- not clean_data ? "Raw data" : ("Clean data : tolerance: " + tolerance + "; split_lines: " + split_lines + " ; reduce_to_main_connected_components:" + reduce_to_main_connected_components );
 	
@@ -49,7 +49,7 @@ global {
     }
     reflex ss{
     	
-		save road to:"../includes/CTURoads_clean.shp" type:shp  attributes: ["NAME"::name,"LANES":: LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
+		save road to:"../includes/CTURoads22.shp" type:shp  attributes: ["NAME"::name,"LANES":: LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
 		
     }
 }
