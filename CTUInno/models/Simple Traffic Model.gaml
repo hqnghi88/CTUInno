@@ -12,7 +12,7 @@ global {
 	file building_shapefile <- file("../includes/CTUBuildings2.shp");
 	//Shapefile of the roads
 	//	file road_shapefile <- file("../includes/CTURoads.shp");
-	file road_shapefile <- file("../includes/CTURoads222.shp");
+	file road_shapefile <- file("../includes/CTURoads2.shp");
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
 	//Step value
@@ -26,7 +26,7 @@ global {
 	int number_people <- 55;
 	int nb_speed;
 	string optimizer_type <- "NBAStarApprox" among: ["NBAStar", "NBAStarApprox", "Dijkstra", "AStar", "BellmannFord", "FloydWarshall"];
-	string scenario_type <- "A in B out" among: ["A in B out", "current"];
+	string scenario_type <- "current" among: ["A in B out", "current"];
 	float seed <- 0.22041988;
 
 	init {
@@ -38,19 +38,22 @@ global {
 		observe_road <- [road[35], road[36], road[2], road[50], road[47], road[45]];
 		if (scenario_type = "A in B out") {
 		//scenario 1 : gate A in, gate B out
-			ask road[3] {
+			ask road[129] {
 				self.DIRECTION <- 1;
 			}
 
-			ask road[36] {
+			ask road[188] {
 				self.DIRECTION <- 1;
 			}
 
-			ask road[5] {
+			ask road[32] {
 				self.DIRECTION <- 1;
 			}
 
-			ask road[49] {
+			ask road[159] {
+				self.DIRECTION <- 1;
+			}
+			ask road[166] {
 				self.DIRECTION <- 1;
 			}
 			//end scenario 1
@@ -271,7 +274,7 @@ species building {
 	//
 	//	}
 	aspect default {
-		draw shape color: #gray;
+		draw shape empty:true color: #black;
 	}
 
 }
@@ -314,14 +317,14 @@ experiment traffic type: gui {
 
 	output {
 	//		layout vertical([0::5000, 1::5000]) tabs: true editors: false;
-		display "Statistic" {
-			chart "Number of people stuck in traffic jams" type: series {
-				data "jam " value: trafficjam color: #red marker: false style: line;
-			}
+//		display "Statistic" {
+//			chart "Number of people stuck in traffic jams" type: series {
+//				data "jam " value: trafficjam color: #red marker: false style: line;
+//			}
+//
+//		}
 
-		}
-
-		display carte type: opengl synchronized: false camera_pos: {1454.3533,566.1281,327.6882} camera_look_pos: {779.8495,554.3546,-127.3225} camera_up_vector: {-0.5591,0.0098,0.829} {
+		display carte type: opengl synchronized: false  {
 			species building refresh: false;
 			species road;
 			species people;

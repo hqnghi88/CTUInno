@@ -8,7 +8,11 @@ model clean_road_network
 
 global {
 //Shapefile of the roads
-	file road_shapefile <- file("../includes/CTURoads22.shp");
+//	file road_shapefile <- file("../includes/CTURoads2_clean.shp");
+//	bool transform <- true;
+//	file road_shapefile <- file("../includes/CTURoads2.shp");
+	file road_shapefile <- file("../includes/CTURoads2_tmp.shp");
+	bool transform <- false;
 
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
@@ -21,7 +25,6 @@ global {
 
 	//if true, split the lines at their intersection
 	bool split_lines <- true parameter: true;
-
 	//if true, keep only the main connected components of the network
 	bool reduce_to_main_connected_components <- false parameter: true;
 	string legend <- not clean_data ?
@@ -36,39 +39,46 @@ global {
 
 		//create road from the clean lines
 		create road from: clean_lines;
-//		ask road {
-//			point so <- first(self.shape.points);
-//			road rr1 <- ((road - self) closest_to so);
-//			geometry r1 <- rr1.shape;
-//			point p1 <- r1.points closest_to self;
-//			write p1 distance_to so;
-//			if (p1 distance_to so < 50) {
-//				list g1 <- r1 split_at p1;
-//				create road from: g1;
-//				ask rr1 {
-//					do die;
-//				}
-//
-//				shape.points[0] <- p1;
-//				s1 <- circle(5) at_location p1;
-//			}
-//
-//			so <- last(self.shape.points);
-//			road rr2 <- ((road - self) closest_to so);
-//			geometry r2 <- rr2.shape;
-//			point p2 <- r2.points closest_to self;
-//			if (p2 distance_to so < 50) {
-//				list g2 <- r2 split_at p2;
-//				create road from: g2;
-//				ask rr2 {
-//					do die;
-//				}
-//
-//				shape.points[length(shape.points) - 1] <- p2;
-//				s2 <- circle(5) at_location p2;
-//			}
-//
-//		}
+		if (transform) {
+			float toler <- 5.0;
+			ask road {
+				point so <- first(self.shape.points);
+				road rr1 <- ((road - self) closest_to so);
+				write rr1;
+				geometry r1 <- rr1.shape;
+				point p1 <- r1.points closest_to self;
+				write p1 distance_to so;
+				if (p1 distance_to so < toler) {
+					list g1 <- r1 split_at p1;
+					rr1.shape<-g1[0];
+					create road from: geometry(g1[1]);
+//					ask rr1 {
+//						do die;
+//					}
+
+					shape.points[0] <- p1;
+					s1 <- circle(5) at_location p1;
+				}
+
+				so <- last(self.shape.points);
+				road rr2 <- ((road - self) closest_to so);
+				geometry r2 <- rr2.shape;
+				point p2 <- r2.points closest_to self;
+				if (p2 distance_to so < toler) {
+					list g2 <- r2 split_at p2;
+					rr2.shape<-g2[0];
+					create road from: geometry(g2[1]);
+//					ask rr2 {
+//						do die;
+//					}
+
+					shape.points[length(shape.points) - 1] <- p2;
+					s2 <- circle(5) at_location p2;
+				}
+
+			}
+
+		}
 
 		//build a network from the road agents
 		graph road_network_clean <- as_edge_graph(road);
@@ -81,9 +91,8 @@ global {
 	}
 
 	reflex ss {
-
-			save road to:"../includes/CTURoads222.shp" type:shp  attributes: ["NAME"::name,"LANES":: LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
-
+//			save road to: "../includes/CTURoads2_tmp.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
+		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
 	}
 
 }
@@ -93,12 +102,15 @@ species road {
 //	string name<-"";
 	geometry s1 <- nil;
 	geometry s2 <- nil;
-	int DIRECTION;
+	int DIRECTION<-2;
 	int LANES <- 4;
 	string TYPE <- "";
+	init{
+		 DIRECTION<-2;
+	}
 
 	aspect default {
-		draw shape + 10 empty: true color: #black;
+		draw shape + 5 empty: true color: #black;
 		if (s1 != nil) {
 			draw s1;
 		}
@@ -126,7 +138,7 @@ experiment clean_network type: gui {
 			graphics "connected components" {
 				loop i from: 0 to: length(connected_components) - 1 {
 					loop j from: 0 to: length(connected_components[i]) - 1 {
-											draw circle(12) color: colors[i] at: connected_components[i][j];	
+						draw circle(12) color: colors[i] at: connected_components[i][j];
 					}
 
 				}
