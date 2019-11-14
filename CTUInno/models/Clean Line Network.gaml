@@ -12,6 +12,8 @@ global {
 //	bool transform <- true;
 //	file road_shapefile <- file("../includes/CTURoads2.shp");
 	file road_shapefile <- file("../includes/CTURoads2_tmp.shp");
+	file building_shapefile <- file("../includes/CTUBuildings2.shp");
+	file bound_shapefile <- file("../includes/CTUBound.shp");
 	bool transform <- false;
 
 	//Shape of the environment
@@ -33,7 +35,13 @@ global {
 	list<rgb> colors;
 
 	init {
-
+		
+		create building from: building_shapefile with:[owner::read("building")];
+		ask building overlapping geometry(bound_shapefile.contents){
+			if(owner!="KTX"){
+				owner<-"CTU";				
+				}
+		}
 	//clean data, with the given options
 		list<geometry> clean_lines <- clean_data ? clean_network(road_shapefile.contents, tolerance, split_lines, reduce_to_main_connected_components) : road_shapefile.contents;
 
@@ -92,11 +100,28 @@ global {
 
 	reflex ss {
 //			save road to: "../includes/CTURoads2_tmp.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
-		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
+		save building to: "../includes/CTUBuildings3.shp" type: shp attributes: ["owner"::owner];
+//		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
 	}
 
 }
 
+	//Species to represent the buildings
+species building {
+	string owner; 
+	//	reflex time_off when: flip(0.0005) {
+	//		create people number: capacity {
+	//			location <- any_location_in(one_of(road where (each.NAME != "3 Tháng 2")));
+	//			target <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
+	//			purpose <- "go home";
+	//		}
+	//
+	//	}
+	aspect default {
+		draw shape empty:false color: #black;
+	}
+
+}
 //Species to represent the roads
 species road {
 //	string name<-"";
@@ -145,6 +170,7 @@ experiment clean_network type: gui {
 
 			}
 
+			species building refresh: false;
 			species road;
 		}
 

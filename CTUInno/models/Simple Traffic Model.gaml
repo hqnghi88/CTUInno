@@ -9,7 +9,7 @@ model traffic
 
 global {
 //Shapefile of the buildings
-	file building_shapefile <- file("../includes/CTUBuildings2.shp");
+	file building_shapefile <- file("../includes/CTUBuildings3.shp");
 	//Shapefile of the roads
 	//	file road_shapefile <- file("../includes/CTURoads.shp");
 	file road_shapefile <- file("../includes/CTURoads2.shp");
@@ -167,8 +167,8 @@ species people skills: [moving] {
 	//	float tick <- 0.0;
 	init {
 	//		location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
-		home <- any_location_in(one_of(building where (each.building = "house")));
-		class <- any_location_in(one_of(building where (each.building != "house")));
+		home <- any_location_in(one_of(building where (each.owner != "CTU")));
+		class <- any_location_in(one_of(building where (each.owner = "CTU")));
 		location <- any_location_in(one_of(road));
 		target <- nil; // any_location_in(one_of(building));
 	}
@@ -176,14 +176,14 @@ species people skills: [moving] {
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) { //and (flip(leaving_proba)) {
 	//		tick <- tick + 1;
-		if (purpose = "go to school" and (cycle mod 2000 >= 1000)) {
+		if (purpose = "go to school" and (cycle mod 4000 >= 2000)) {
 		//			leaving_proba <- 0.5;
 		//			tick <- 0.0;
 			purpose <- "go home";
 			target <- home; // any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
 		}
 
-		if (purpose = "go home" and (cycle mod 2000 < 1000)) {
+		if (purpose = "go home" and (cycle mod 4000 < 2000)) {
 		//			leaving_proba <- leaving_proba_ori;
 			purpose <- "go to school";
 			location <- any_location_in(one_of(road where (each.NAME = "3 Tháng 2")));
@@ -263,7 +263,7 @@ species people skills: [moving] {
 
 	//Species to represent the buildings
 species building {
-	string building;
+	string owner;
 	int capacity <- int(number_people / 2); //rnd(50);
 	//	reflex time_off when: flip(0.0005) {
 	//		create people number: capacity {
