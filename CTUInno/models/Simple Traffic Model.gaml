@@ -12,7 +12,7 @@ global {
 	file building_shapefile <- file("../includes/CTUBuildings2.shp");
 	//Shapefile of the roads
 	//	file road_shapefile <- file("../includes/CTURoads.shp");
-	file road_shapefile <- file("../includes/CTURoads2.shp");
+	file road_shapefile <- file("../includes/CTURoads222.shp");
 	//Shape of the environment
 	geometry shape <- envelope(road_shapefile);
 	//Step value
