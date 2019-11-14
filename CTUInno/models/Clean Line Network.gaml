@@ -12,11 +12,11 @@ global {
 //	bool transform <- true;
 //	file road_shapefile <- file("../includes/CTURoads2.shp");
 	file road_shapefile <- file("../includes/CTURoads2_tmp.shp");
-	file building_shapefile <- file("../includes/CTUBuildings2.shp");
-	file bound_shapefile <- file("../includes/CTUBound.shp");
 	bool transform <- false;
 
 	//Shape of the environment
+	file building_shapefile <- file("../includes/CTUBuildings2.shp");
+	file bound_shapefile <- file("../includes/CTUBound.shp");
 	geometry shape <- envelope(road_shapefile);
 
 	//clean or not the data
@@ -99,9 +99,9 @@ global {
 	}
 
 	reflex ss {
+//		save building to: "../includes/CTUBuildings3.shp" type: shp attributes: ["owner"::owner];
 //			save road to: "../includes/CTURoads2_tmp.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
-		save building to: "../includes/CTUBuildings3.shp" type: shp attributes: ["owner"::owner];
-//		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
+		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
 	}
 
 }
