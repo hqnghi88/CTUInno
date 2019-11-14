@@ -35,25 +35,25 @@ global {
 		create building from: building_shapefile;
 		//Initialization of the road using the shapefile of roads
 		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
-		observe_road <- [road[35], road[36], road[2], road[50], road[47], road[45]];
+		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
 		if (scenario_type = "A in B out") {
 		//scenario 1 : gate A in, gate B out
-			ask road[129] {
+			ask road[31] {
+				self.DIRECTION <- 1;
+			}
+			ask road[125] {
 				self.DIRECTION <- 1;
 			}
 
-			ask road[188] {
+			ask road[183] {
 				self.DIRECTION <- 1;
 			}
 
-			ask road[32] {
-				self.DIRECTION <- 1;
-			}
 
-			ask road[159] {
+			ask road[154] {
 				self.DIRECTION <- 1;
 			}
-			ask road[166] {
+			ask road[112] {
 				self.DIRECTION <- 1;
 			}
 			//end scenario 1
@@ -95,7 +95,7 @@ global {
 		}
 
 		//Creation of the people agents
-		create people number: 500 {
+		create people number: 5000 {
 		}
 
 		create people number: 50 {
@@ -156,11 +156,11 @@ species people skills: [moving] {
 	geometry shape <- triangle(wsize);
 	float perception_distance <- wsize * 1.5;
 	geometry TL_area;
-	float csp <- ((nb_speed / 20) #km / #h);
+	float csp <- ((nb_speed / 5) #km / #h);
 	rgb csd <- #green;
-	float min_speed <- 0.1;
-	float max_accelerate <- 1.2;
-	float accelerate <- 0.0;
+	float min_speed <- 0.5;
+//	float max_accelerate <- 1.2;
+//	float accelerate <- 0.0;
 	string purpose <- "go home";
 	float work_time <- 120.0 + rnd(30);
 	float rest_time <- 20.0 + rnd(30);
@@ -225,7 +225,7 @@ species people skills: [moving] {
 			//				}
 				if (csd = #darkred) {
 					csd <- #green;
-					csp <- ((nb_speed / 20) #km / #h); /// + accelerate;
+					csp <- ((nb_speed / 5) #km / #h); /// + accelerate;
 				}
 
 //				if ((csp + 0.25 <= max_accelerate)) {
@@ -308,7 +308,7 @@ species road {
 experiment traffic type: gui {
 	parameter "Scenario" var: scenario_type;
 	parameter "Number of people generated per 10 min" var: number_people <- 55 min: 0 max: 150;
-	parameter "Maximum Average Speed" var: nb_speed <- 25 min: 0 max: 100;
+	parameter "Maximum Average Speed" var: nb_speed <- 55 min: 0 max: 100;
 	//	parameter "voiture <-> moto" var: nb_moto <- 100 min: 0 max: 100;
 	//	float minimum_cycle_duration <- 0.01;
 	init {
@@ -317,12 +317,12 @@ experiment traffic type: gui {
 
 	output {
 	//		layout vertical([0::5000, 1::5000]) tabs: true editors: false;
-//		display "Statistic" {
-//			chart "Number of people stuck in traffic jams" type: series {
-//				data "jam " value: trafficjam color: #red marker: false style: line;
-//			}
-//
-//		}
+		display "Statistic" {
+			chart "Number of people stuck in traffic jams" type: series {
+				data "jam " value: trafficjam color: #red marker: false style: line;
+			}
+
+		}
 
 		display carte type: opengl synchronized: false  {
 			species building refresh: false;
