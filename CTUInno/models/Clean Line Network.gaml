@@ -8,6 +8,7 @@ model clean_road_network
 
 global {
 //Shapefile of the roads
+	file gate_shapefile <- file("../includes/CTUGates.shp");
 //	file road_shapefile <- file("../includes/CTURoads2_clean.shp");
 //	bool transform <- true;
 //	file road_shapefile <- file("../includes/CTURoads2.shp");
@@ -15,7 +16,7 @@ global {
 	bool transform <- false;
 
 	//Shape of the environment
-	file building_shapefile <- file("../includes/CTUBuildings2.shp");
+	file building_shapefile <- file("../includes/CTUBuildings3.shp");
 	file bound_shapefile <- file("../includes/CTUBound.shp");
 	geometry shape <- envelope(road_shapefile);
 
@@ -34,9 +35,11 @@ global {
 	list<list<point>> connected_components;
 	list<rgb> colors;
 
+	list<rgb> road_color <- [#green, #red, #blue];
 	init {
 		
 		create building from: building_shapefile with:[owner::read("building")];
+		create gate from: gate_shapefile;
 		ask building overlapping geometry(bound_shapefile.contents){
 			if(owner!="KTX"){
 				owner<-"CTU";				
@@ -47,6 +50,32 @@ global {
 
 		//create road from the clean lines
 		create road from: clean_lines;
+		ask road{
+			if (DIRECTION=0){
+//				DIRECTION<-0;
+				TYPE<-"main";
+			}
+		}
+//		list<road> reversed<-[road[170],road[30],road[171],road[68],road[44],road[84],road[83],road[140],road[66],road[119],road[151],road[166],road[75],road[175]];
+//		ask reversed{
+//			shape <- polyline(reverse(shape.points));
+//		}
+//			gate[0].TYPE <- "1";
+//			point p1 <- gate[0].location;
+//			point p2 <- road[3].shape.points closest_to p1;
+//			create road {
+//				shape <- line(p1, p2);
+//				DIRECTION <- 2;
+//			}
+//
+//			gate[3].TYPE <- "1";
+//			p1 <- gate[3].location;
+//			p2 <- road[169].shape.points closest_to p1;
+//			create road {
+//				shape <- line(p1, p2);
+//				DIRECTION <- 2;
+//			}
+		
 		if (transform) {
 			float toler <- 5.0;
 			ask road {
@@ -106,6 +135,16 @@ global {
 
 }
 
+species gate {
+	string NAME;
+	string TYPE;
+	int DIRECTION;
+
+	aspect default {
+		draw square(10) empty: true color: #black;
+	}
+
+}
 	//Species to represent the buildings
 species building {
 	string owner; 
@@ -118,7 +157,7 @@ species building {
 	//
 	//	}
 	aspect default {
-		draw shape empty:false color: #black;
+		draw shape empty:true color: #black;
 	}
 
 }
@@ -127,15 +166,15 @@ species road {
 //	string name<-"";
 	geometry s1 <- nil;
 	geometry s2 <- nil;
-	int DIRECTION<-2;
+	int DIRECTION;
 	int LANES <- 4;
 	string TYPE <- "";
-	init{
-		 DIRECTION<-2;
-	}
+//	init{
+//		 DIRECTION<-2;
+//	}
 
 	aspect default {
-		draw shape + 5 empty: true color: #black;
+		draw shape + 5 empty: false color:road_color[DIRECTION];
 		if (s1 != nil) {
 			draw s1;
 		}
