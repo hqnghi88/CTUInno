@@ -28,11 +28,11 @@ global {
 	int number_people <- 55;
 	int nb_speed;
 	string optimizer_type <- "NBAStarApprox" among: ["NBAStar", "NBAStarApprox", "Dijkstra", "AStar", "BellmannFord", "FloydWarshall"];
-	string scenario_type <- "A in B out" among: ["A in B out", "current"];
+	string scenario_type <- "current" among: ["A in B out", "current"];
 	bool newgate <- false;
 	//		bool directed <- true;
 	bool directed <- true;
-	bool separate_2lanes <- false;
+	bool separate_2lanes <- true;
 	float seed <- 0.22041988;
 	list<rgb> road_color <- [#green, #red, #blue];
 
@@ -41,6 +41,9 @@ global {
 		//Initialization of the building using the shapefile of buildings
 		create building from: building_shapefile;
 		create gate from: gate_shapefile;
+		gate[1].regular <- 0.75;
+		gate[2].regular <- 0.15;
+		gate[4].regular <- 0.1;
 		//Initialization of the road using the shapefile of roads
 		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
 		//		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
@@ -64,6 +67,10 @@ global {
 		}
 
 		if (newgate) {
+			ask gate {
+				regular <- 0.2;
+			}
+
 			gate[0].TYPE <- "1";
 			//			point p1 <- last(road[80].shape.points);
 			//			point p2 <- road[144].shape.points closest_to p1;
@@ -135,10 +142,10 @@ global {
 
 			}
 
-			create people number: 500 {
+			create people number: 250 {
 			}
 
-			create people number: 20 {
+			create people number: 50 {
 				purpose <- "go around";
 				//People agents are located anywhere in one of the building
 			}
@@ -202,11 +209,11 @@ species people skills: [moving] {
 	float wsize <- (15.0) / 1;
 	float heading <- -90.0;
 	geometry shape <- triangle(wsize);
-	float perception_distance <- wsize * 1.5;
+	float perception_distance <- wsize * 4.5;
 	//	geometry TL_area;
 	float csp <- ((nb_speed / 5) #km / #h);
 	rgb csd <- #green;
-	float min_speed <- 1.0;
+	float min_speed <- 0.5;
 
 	//	path path_to_follow;
 	//	float max_accelerate <- 1.2;
@@ -221,7 +228,11 @@ species people skills: [moving] {
 	//		location <- any_location_in(one_of(road where (each.TYPE = "main")));
 		home <- any_location_in(one_of(building where (each.owner != "CTU" and each.owner != "KTX")));
 		class <- any_location_in(one_of(building where (each.owner = "CTU")));
-		my_gate <- any(gate where (each.TYPE = "1")).location;
+		list tmp <- (gate where (each.TYPE = "1"));
+		int var0 <- rnd_choice(tmp collect each.regular);
+		//		write tmp;
+		//		write var0;
+		my_gate <- tmp[var0].location;
 		//				my_gate <- ((gate where (each.TYPE = "1")) closest_to home).location;
 		//		location <- any_location_in(one_of(road));
 		location <- home;
@@ -242,13 +253,13 @@ species people skills: [moving] {
 
 		}
 
-		if (purpose = "go to school" and (cycle mod 1500 >= 700)) {
+		if (purpose = "go to school" and (cycle mod 1000 >= 500)) {
 		//			leaving_proba <- 0.5;
 		//			tick <- 0.0;
 			if (location distance_to class < 0.000001) {
 				if (flip(0.1)) {
 					if (scenario_type = "A in B out") {
-						my_gate <- any(gate where (each.TYPE = "1" and each.DIRECTION != 0)).location;
+						my_gate <- ((gate where (each.TYPE = "1" and each.DIRECTION != 0)) closest_to home).location;
 					}
 
 					target <- my_gate;
@@ -261,12 +272,12 @@ species people skills: [moving] {
 
 		}
 
-		if (purpose = "go home" and (cycle mod 1500 < 700)) {
+		if (purpose = "go home" and (cycle mod 1000 < 500)) {
 		//			leaving_proba <- leaving_proba_ori; 
 			if (location distance_to home < 0.000001) {
 				if (flip(0.1)) {
 					if (scenario_type = "A in B out") {
-						my_gate <- any(gate where (each.TYPE = "1" and each.DIRECTION != 1)).location;
+						my_gate <- ((gate where (each.TYPE = "1" and each.DIRECTION != 1)) closest_to class).location;
 					}
 
 					target <- my_gate;
@@ -362,10 +373,10 @@ species people skills: [moving] {
 	//			if(ppp!=nil){				
 	//				draw circle(0.5) empty:true at:ppp color:csd;
 	//			}
-		if (target != nil and name = "people487") {
-			draw line(location, target) color: csd;
-			//					draw circle(0.5) empty:true at:destination color:csd;
-		}
+//		if (target != nil and name = "people197") {
+//			draw line(location, target) color: csd;
+//			//					draw circle(0.5) empty:true at:destination color:csd;
+//		}
 		//				if (TL_area != nil) {
 		//					draw TL_area color: csd empty: true;
 		//				}
@@ -376,6 +387,7 @@ species gate {
 	string NAME;
 	string TYPE;
 	int DIRECTION;
+	float regular <- 0.0;
 
 	aspect default {
 		draw square(10) empty: true color: #black;
