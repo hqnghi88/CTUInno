@@ -200,6 +200,7 @@ experiment clean_network type: gui {
 		//				draw legend color: #white font: font("SansSerif", 20, #bold) at: {40#px, 40#px, 1 };
 		//			}
 			graphics "connected components" {
+				draw geometry(bound_shapefile.contents);
 				loop i from: 0 to: length(connected_components) - 1 {
 					loop j from: 0 to: length(connected_components[i]) - 1 {
 						draw circle(12) color: colors[i] at: connected_components[i][j];
