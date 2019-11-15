@@ -19,18 +19,20 @@ global {
 	//Step value
 	float step <- 10 #s;
 	//Graph of the road network
-	graph road_network;
+	graph road_network_external;
+	graph road_network_CTU;
 	//Map containing all the weights for the road network graph
 	map<road, float> road_weights;
-//	list<road> observe_road;
+	//	list<road> observe_road;
 	float trafficjam;
 	int number_people <- 55;
 	int nb_speed;
 	string optimizer_type <- "NBAStarApprox" among: ["NBAStar", "NBAStarApprox", "Dijkstra", "AStar", "BellmannFord", "FloydWarshall"];
-	string scenario_type <- "current" among: ["A in B out", "current"];
+	string scenario_type <- "A in B out" among: ["A in B out", "current"];
 	bool newgate <- false;
 	//		bool directed <- true;
 	bool directed <- true;
+	bool separate_2lanes <- false;
 	float seed <- 0.22041988;
 	list<rgb> road_color <- [#green, #red, #blue];
 
@@ -41,7 +43,7 @@ global {
 		create gate from: gate_shapefile;
 		//Initialization of the road using the shapefile of roads
 		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
-//		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
+		//		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
 
 		//		ask [road[87], road[141], road[64], road[75], road[25], road[85],road[180]] {
 		//			DIRECTION <- 0;
@@ -52,9 +54,12 @@ global {
 		//		}
 		if (scenario_type = "A in B out") {
 		//scenario 1 : gate A in, gate B out
-			ask road where(each.TYPE="scenario1") {
+			ask road where (each.TYPE = "scenario1") {
 				DIRECTION <- 1;
 			}
+
+			gate[1].DIRECTION <- 0;
+			gate[2].DIRECTION <- 1;
 			//end scenario 1
 		}
 
@@ -97,18 +102,31 @@ global {
 
 					match 2 {
 						color <- #blue;
-						point p0 <- shape.points[0];
-						point p1 <- shape.points[length(shape.points) - 1];
-						shape <- shape translated_by {-5, 0};
-						shape.points[0] <- p0;
-						shape.points[length(shape.points) - 1] <- p1;
+						if (separate_2lanes) {
+							point p0 <- shape.points[0];
+							point p1 <- shape.points[length(shape.points) - 1];
+							shape <- shape translated_by {-5, 0};
+							shape.points[0] <- p0;
+							shape.points[length(shape.points) - 1] <- p1;
+							//bidirectional: creation of the inverse road
+							create road {
+								shape <- polyline(reverse(myself.shape.points)) translated_by {10, 0};
+								shape.points[0] <- myself.shape.points[length(myself.shape.points) - 1];
+								shape.points[length(shape.points) - 1] <- myself.shape.points[0];
+								DIRECTION <- 2;
+								color <- #blue;
+								OWNER <- myself.OWNER;
+							}
+
+						} else {
 						//bidirectional: creation of the inverse road
-						create road {
-							shape <- polyline(reverse(myself.shape.points)) translated_by {10, 0};
-							shape.points[0] <- myself.shape.points[length(myself.shape.points) - 1];
-							shape.points[length(shape.points) - 1] <- myself.shape.points[0];
-							DIRECTION <- 2;
-							color <- #blue;
+							create road {
+								shape <- polyline(reverse(myself.shape.points));
+								DIRECTION <- 2;
+								color <- #blue;
+								OWNER <- myself.OWNER;
+							}
+
 						}
 
 					}
@@ -130,15 +148,17 @@ global {
 		//Weights of the road
 		//				road_weights <- road as_map (each::float(each.nb_people + 1));
 		//		road_network <- as_edge_graph(road);
-		road_network <- directed(as_edge_graph(road));
-		road_network <- road_network with_optimizer_type optimizer_type;
+		road_network_external <- directed(as_edge_graph(road where (each.OWNER != "CTU")));
+		road_network_external <- road_network_external with_optimizer_type optimizer_type;
+		road_network_CTU <- directed(as_edge_graph(road where (each.OWNER = "CTU")));
+		road_network_CTU <- road_network_CTU with_optimizer_type optimizer_type;
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
 		trafficjam <- 0.0;
-//		ask observe_road {
-//			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
-//		}
+		//		ask observe_road {
+		//			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
+		//		}
 
 		//		if (cycle = 2000) {
 		//			do pause;
@@ -186,7 +206,7 @@ species people skills: [moving] {
 	//	geometry TL_area;
 	float csp <- ((nb_speed / 5) #km / #h);
 	rgb csd <- #green;
-	float min_speed <- 0.5;
+	float min_speed <- 1.0;
 
 	//	path path_to_follow;
 	//	float max_accelerate <- 1.2;
@@ -194,26 +214,43 @@ species people skills: [moving] {
 	string purpose <- "go home";
 	float work_time <- 120.0 + rnd(30);
 	float rest_time <- 20.0 + rnd(30);
+	bool inside_CTU <- false;
 	//	float tick <- 0.0;
 	init {
 	//		roads_knowledge <- road_weights;
 	//		location <- any_location_in(one_of(road where (each.TYPE = "main")));
-		home <- any_location_in(one_of(building where (each.owner != "CTU")));
+		home <- any_location_in(one_of(building where (each.owner != "CTU" and each.owner != "KTX")));
 		class <- any_location_in(one_of(building where (each.owner = "CTU")));
 		my_gate <- any(gate where (each.TYPE = "1")).location;
-//				my_gate <- ((gate where (each.TYPE = "1")) closest_to home).location;
-		location <- any_location_in(one_of(road));
-		target <- class; // any_location_in(one_of(building));
+		//				my_gate <- ((gate where (each.TYPE = "1")) closest_to home).location;
+		//		location <- any_location_in(one_of(road));
+		location <- home;
+		target <- nil; // any_location_in(one_of(building));
 	}
 
 	//Reflex to leave the building to another building
 	reflex leave when: (target = nil) { //and (flip(leaving_proba)) {
-	//		tick <- tick + 1;
+	//		tick <- tick + 1; 
+		if (location distance_to my_gate < 0.000001) {
+			if (purpose = "go home") {
+				inside_CTU <- true;
+			}
+
+			if (purpose = "go to school") {
+				inside_CTU <- false;
+			}
+
+		}
+
 		if (purpose = "go to school" and (cycle mod 1500 >= 700)) {
 		//			leaving_proba <- 0.5;
 		//			tick <- 0.0;
-			if (location = class) {
-				if (flip(0.05)) {
+			if (location distance_to class < 0.000001) {
+				if (flip(0.1)) {
+					if (scenario_type = "A in B out") {
+						my_gate <- any(gate where (each.TYPE = "1" and each.DIRECTION != 0)).location;
+					}
+
 					target <- my_gate;
 				}
 
@@ -225,9 +262,13 @@ species people skills: [moving] {
 		}
 
 		if (purpose = "go home" and (cycle mod 1500 < 700)) {
-		//			leaving_proba <- leaving_proba_ori;
-			if (location = home) {
-				if (flip(0.05)) {
+		//			leaving_proba <- leaving_proba_ori; 
+			if (location distance_to home < 0.000001) {
+				if (flip(0.1)) {
+					if (scenario_type = "A in B out") {
+						my_gate <- any(gate where (each.TYPE = "1" and each.DIRECTION != 1)).location;
+					}
+
 					target <- my_gate;
 				}
 
@@ -243,17 +284,17 @@ species people skills: [moving] {
 		if (purpose = "go around") {
 		//			leaving_proba <- leaving_proba_ori;
 		//			tick <- 0.0;
-//			target <- any_location_in(one_of(road));
-				target <- any_location_in(one_of(road where (each.TYPE = "main")));
+		//			target <- any_location_in(one_of(road));
+			target <- any_location_in(one_of(road where (each.TYPE = "main")));
 		}
 
 	}
 
-	point ppp <- nil;
+	//	point ppp <- nil;
 	//Reflex to move to the target building moving on the road network
 	reflex move when: target != nil {
 	//		path path_followed <-
-		do goto(target: target, speed: csp, on: road_network, recompute_path: true, return_path: false); //, move_weights: road_weights);
+		do goto(target: target, speed: csp, on: inside_CTU ? road_network_CTU : road_network_external, recompute_path: true, return_path: false); //, move_weights: road_weights);
 		//				if (path_to_follow = nil) {
 		//		
 		//				//Find the shortest path using the agent's own weights to compute the shortest path
@@ -271,7 +312,7 @@ species people skills: [moving] {
 		//we use the return_path facet to return the path followed
 		if (current_edge != nil) {
 			if ((length(v) > 0)) { //((current_edge as road).LANES))) {
-				ppp <- v[0].location;
+			//				ppp <- v[0].location;
 				csd <- #darkred;
 				float tmp <- v min_of each.csp;
 				if (csp > tmp) {
@@ -283,14 +324,14 @@ species people skills: [moving] {
 				}
 
 			} else {
-				ppp <- nil;
-				//				if (accelerate < max_accelerate) {
-				//					accelerate <- accelerate + 0.01;
-				//				}
-				//				if (csd = #darkred) {
-				//					csd <- #green;
-				//					csp <- ((nb_speed / 5) #km / #h); /// + accelerate;
-				//				}
+			//				ppp <- nil;
+			//				if (accelerate < max_accelerate) {
+			//					accelerate <- accelerate + 0.01;
+			//				}
+			//				if (csd = #darkred) {
+			//					csd <- #green;
+			//					csp <- ((nb_speed / 5) #km / #h); /// + accelerate;
+			//				}
 				csd <- #green;
 				if ((csp + 0.25 <= ((nb_speed / 5) #km / #h))) {
 					csp <- csp + 0.25;
@@ -321,13 +362,13 @@ species people skills: [moving] {
 	//			if(ppp!=nil){				
 	//				draw circle(0.5) empty:true at:ppp color:csd;
 	//			}
-	//			if (target != nil ) {
-	////				draw line(location, destination) color:csd;
-	//				draw circle(0.5) empty:true at:destination color:csd;
-	//			}
-	//				if (TL_area != nil) {
-	//					draw TL_area color: csd empty: true;
-	//				}
+		if (target != nil and name = "people487") {
+			draw line(location, target) color: csd;
+			//					draw circle(0.5) empty:true at:destination color:csd;
+		}
+		//				if (TL_area != nil) {
+		//					draw TL_area color: csd empty: true;
+		//				}
 		draw shape empty: true rotate: heading + 90 color: csd;
 	} }
 
@@ -364,6 +405,7 @@ species road {
 	int DIRECTION;
 	int LANES <- 1;
 	string TYPE <- "";
+	string OWNER <- "";
 	//Capacity of the road considering its perimeter
 	//	float capacity <- float(number_people);
 	//Number of people on the road
@@ -372,7 +414,7 @@ species road {
 	//	float speed_coeff <- 1.0 update: exp(-nb_people / capacity) min: 0.1;
 	//	int buffer <- 10;
 	aspect default {
-		draw (shape ) color: road_color[DIRECTION]; // + buffer * speed_coeff)
+		draw (shape) color: road_color[DIRECTION]; // + buffer * speed_coeff)
 		if (!directed) {
 			draw "" + int(self) at: location color: color perspective: false;
 		}
@@ -409,7 +451,7 @@ experiment traffic type: gui {
 	//			}
 	//
 	//		}
-		display carte type: opengl synchronized: true camera_pos: {1352.6461, 1292.8163, 1589.0471} camera_look_pos: {889.1801, 875.5097, 45.5246} camera_up_vector:
+		display carte type: opengl synchronized: false camera_pos: {1352.6461, 1292.8163, 1589.0471} camera_look_pos: {889.1801, 875.5097, 45.5246} camera_up_vector:
 		{-0.689, 0.6204, 0.3746} {
 			species building refresh: false;
 			species gate refresh: false;

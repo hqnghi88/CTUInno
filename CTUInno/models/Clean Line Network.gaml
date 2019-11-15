@@ -40,11 +40,11 @@ global {
 		
 		create building from: building_shapefile with:[owner::read("building")];
 		create gate from: gate_shapefile;
-		ask building overlapping geometry(bound_shapefile.contents){
-			if(owner!="KTX"){
-				owner<-"CTU";				
-				}
-		}
+//		ask building overlapping geometry(bound_shapefile.contents){
+//			if(owner!="KTX"){
+//				owner<-"CTU";				
+//				}
+//		}
 	//clean data, with the given options
 		list<geometry> clean_lines <- clean_data ? clean_network(road_shapefile.contents, tolerance, split_lines, reduce_to_main_connected_components) : road_shapefile.contents;
 
@@ -116,7 +116,9 @@ global {
 			}
 
 		}
-
+		ask road overlapping geometry(bound_shapefile.contents){
+			OWNER<-"CTU";
+		}
 		//build a network from the road agents
 		graph road_network_clean <- as_edge_graph(road);
 		//computed the connected components of the graph (for visualization purpose)
@@ -130,7 +132,7 @@ global {
 	reflex ss {
 //		save building to: "../includes/CTUBuildings3.shp" type: shp attributes: ["owner"::owner];
 //			save road to: "../includes/CTURoads2_tmp.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
-		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION];
+		save road to: "../includes/CTURoads2.shp" type: shp attributes: ["NAME"::name, "LANES"::LANES, "TYPE"::TYPE, "DIRECTION"::DIRECTION, "OWNER"::OWNER];
 	}
 
 }
@@ -169,6 +171,7 @@ species road {
 	int DIRECTION;
 	int LANES <- 4;
 	string TYPE <- "";
+	string OWNER<-"";
 //	init{
 //		 DIRECTION<-2;
 //	}
