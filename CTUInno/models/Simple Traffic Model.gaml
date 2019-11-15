@@ -22,7 +22,7 @@ global {
 	graph road_network;
 	//Map containing all the weights for the road network graph
 	map<road, float> road_weights;
-	list<road> observe_road;
+//	list<road> observe_road;
 	float trafficjam;
 	int number_people <- 55;
 	int nb_speed;
@@ -41,7 +41,7 @@ global {
 		create gate from: gate_shapefile;
 		//Initialization of the road using the shapefile of roads
 		create road from: road_shapefile with: [DIRECTION::int(read("DIRECTION"))];
-		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
+//		observe_road <- [road[183], road[63], road[76], road[185], road[184]];
 
 		//		ask [road[87], road[141], road[64], road[75], road[25], road[85],road[180]] {
 		//			DIRECTION <- 0;
@@ -52,8 +52,8 @@ global {
 		//		}
 		if (scenario_type = "A in B out") {
 		//scenario 1 : gate A in, gate B out
-			ask [road[81], road[169], road[58], road[154], road[155]] {
-				DIRECTION <- 0;
+			ask road where(each.TYPE="scenario1") {
+				DIRECTION <- 1;
 			}
 			//end scenario 1
 		}
@@ -75,7 +75,7 @@ global {
 			//			}
 
 		} else {
-			ask [road[94], road[95]] {
+			ask [road[90], road[91]] {
 				do die;
 			}
 
@@ -136,9 +136,9 @@ global {
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
 		trafficjam <- 0.0;
-		ask observe_road {
-			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
-		}
+//		ask observe_road {
+//			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
+//		}
 
 		//		if (cycle = 2000) {
 		//			do pause;
@@ -200,8 +200,8 @@ species people skills: [moving] {
 	//		location <- any_location_in(one_of(road where (each.TYPE = "main")));
 		home <- any_location_in(one_of(building where (each.owner != "CTU")));
 		class <- any_location_in(one_of(building where (each.owner = "CTU")));
-//		my_gate <- any(gate where (each.TYPE = "1")).location;
-				my_gate <- ((gate where (each.TYPE = "1")) closest_to home).location;
+		my_gate <- any(gate where (each.TYPE = "1")).location;
+//				my_gate <- ((gate where (each.TYPE = "1")) closest_to home).location;
 		location <- any_location_in(one_of(road));
 		target <- class; // any_location_in(one_of(building));
 	}
@@ -213,7 +213,7 @@ species people skills: [moving] {
 		//			leaving_proba <- 0.5;
 		//			tick <- 0.0;
 			if (location = class) {
-				if (flip(0.01)) {
+				if (flip(0.05)) {
 					target <- my_gate;
 				}
 
@@ -227,7 +227,7 @@ species people skills: [moving] {
 		if (purpose = "go home" and (cycle mod 1500 < 700)) {
 		//			leaving_proba <- leaving_proba_ori;
 			if (location = home) {
-				if (flip(0.01)) {
+				if (flip(0.05)) {
 					target <- my_gate;
 				}
 

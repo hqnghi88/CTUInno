@@ -11,8 +11,8 @@ global {
 	file gate_shapefile <- file("../includes/CTUGates.shp");
 //	file road_shapefile <- file("../includes/CTURoads2_clean.shp");
 //	bool transform <- true;
-//	file road_shapefile <- file("../includes/CTURoads2.shp");
 	file road_shapefile <- file("../includes/CTURoads2_tmp.shp");
+//	file road_shapefile <- file("../includes/CTURoads2.shp");
 	bool transform <- false;
 
 	//Shape of the environment
@@ -50,12 +50,12 @@ global {
 
 		//create road from the clean lines
 		create road from: clean_lines;
-		ask road{
-			if (DIRECTION=0){
-//				DIRECTION<-0;
-				TYPE<-"main";
-			}
-		}
+//		ask road{
+//			if (DIRECTION=0){
+////				DIRECTION<-0;
+//				TYPE<-"main";
+//			}
+//		}
 //		list<road> reversed<-[road[170],road[30],road[171],road[68],road[44],road[84],road[83],road[140],road[66],road[119],road[151],road[166],road[75],road[175]];
 //		ask reversed{
 //			shape <- polyline(reverse(shape.points));
