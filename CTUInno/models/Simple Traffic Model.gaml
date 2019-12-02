@@ -33,6 +33,7 @@ global {
 	//		bool directed <- true;
 	bool directed <- true;
 	bool separate_2lanes <- true;
+	bool random_event <- true;
 	float seed <- 0.22041988;
 	list<rgb> road_color <- [#green, #red, #blue];
 
@@ -162,7 +163,18 @@ global {
 	}
 	//Reflex to update the speed of the roads according to the weights
 	reflex update_road_speed {
-		trafficjam <- 0.0;
+		trafficjam <- length(people where (each.csd = #darkred));
+		if (random_event and flip(0.01) and length(people where (each.go_event)) = 0) {
+			create people number: 50 {
+				go_event <- true;
+				if (go_event) {
+					class <- any_location_in(building[408]);
+				}
+
+			}
+
+		}
+		//		trafficjam <- 0.0;
 		//		ask observe_road {
 		//			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
 		//		}
@@ -219,6 +231,7 @@ species people skills: [moving] {
 	//	float max_accelerate <- 1.2;
 	//	float accelerate <- 0.0;
 	string purpose <- "go home";
+	bool go_event <- false;
 	float work_time <- 120.0 + rnd(30);
 	float rest_time <- 20.0 + rnd(30);
 	bool inside_CTU <- false;
@@ -228,6 +241,10 @@ species people skills: [moving] {
 	//		location <- any_location_in(one_of(road where (each.TYPE = "main")));
 		home <- any_location_in(one_of(building where (each.owner != "CTU" and each.owner != "KTX")));
 		class <- any_location_in(one_of(building where (each.owner = "CTU")));
+		if (go_event) {
+			class <- any_location_in(building[408]);
+		}
+
 		list tmp <- (gate where (each.TYPE = "1"));
 		int var0 <- rnd_choice(tmp collect each.regular);
 		//		write tmp;
@@ -360,26 +377,30 @@ species people skills: [moving] {
 		//		}
 		if (self distance_to target < 0.0001) {
 		//					path_to_follow<-nil;
+			if (target=home and go_event) {
+				do die;
+			}
 			location <- target;
+
 			csd <- #green;
 			target <- nil;
-			//			if (purpose = "go home") {
-			//				do die;
-			//			}
-
 		} }
 
 	aspect default {
 	//			if(ppp!=nil){				
 	//				draw circle(0.5) empty:true at:ppp color:csd;
 	//			}
-//		if (target != nil and name = "people197") {
-//			draw line(location, target) color: csd;
-//			//					draw circle(0.5) empty:true at:destination color:csd;
-//		}
-		//				if (TL_area != nil) {
-		//					draw TL_area color: csd empty: true;
-		//				}
+	//		if (target != nil and name = "people197") {
+	//			draw line(location, target) color: csd;
+	//			//					draw circle(0.5) empty:true at:destination color:csd;
+	//		}
+	//				if (TL_area != nil) {
+	//					draw TL_area color: csd empty: true;
+	//				}
+		if (go_event) {
+			draw circle(wsize) color: #red;
+		}
+
 		draw shape empty: true rotate: heading + 90 color: csd;
 	} }
 
@@ -448,6 +469,7 @@ experiment traffic type: gui {
 	parameter "Number of people generated per 10 min" var: number_people <- 55 min: 0 max: 150;
 	parameter "Maximum Average Speed" var: nb_speed <- 35 min: 0 max: 100;
 	parameter "Open 2 new gates" var: newgate;
+	parameter "Random Event" var: random_event;
 	parameter "make directed graphs" var: directed;
 	//	parameter "voiture <-> moto" var: nb_moto <- 100 min: 0 max: 100;
 	//	float minimum_cycle_duration <- 0.01;
@@ -457,12 +479,13 @@ experiment traffic type: gui {
 
 	output {
 	//		layout vertical([0::5000, 1::5000]) tabs: true editors: false;
-	//		display "Statistic" {
-	//			chart "Number of people stuck in traffic jams" type: series {
-	//				data "jam " value: trafficjam color: #red marker: false style: line;
-	//			}
-	//
-	//		}
+		display "Statistic" {
+			chart "Number of people stuck in traffic jams" type: series {
+				data "jam " value: trafficjam color: #red marker: false style: line;
+			}
+
+		}
+
 		display carte type: opengl synchronized: false camera_pos: {1352.6461, 1292.8163, 1589.0471} camera_look_pos: {889.1801, 875.5097, 45.5246} camera_up_vector:
 		{-0.689, 0.6204, 0.3746} {
 			species building refresh: false;
