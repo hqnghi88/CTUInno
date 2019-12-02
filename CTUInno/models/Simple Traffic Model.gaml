@@ -179,9 +179,9 @@ global {
 		//			trafficjam <- trafficjam + length(((people at_distance 1) where (each.csd = #darkred)) where (each overlaps self));
 		//		}
 
-		//		if (cycle = 2000) {
-		//			do pause;
-		//		}
+				if (cycle = 2000) {
+					do pause;
+				}
 		//				road_weights <- road as_map (each::  (float(each.nb_people+1)));
 		//		road_network <- road_network with_weights road_weights;
 	}
@@ -398,10 +398,12 @@ species people skills: [moving] {
 	//					draw TL_area color: csd empty: true;
 	//				}
 		if (go_event) {
-			draw circle(wsize) color: #red;
+			draw circle(wsize/2) color: #red;
 		}
-
+		else{
+			
 		draw shape empty: true rotate: heading + 90 color: csd;
+		}
 	} }
 
 species gate {
