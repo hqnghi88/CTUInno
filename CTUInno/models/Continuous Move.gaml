@@ -7,8 +7,10 @@
 model ContinuousMove
 
 global {
-	geometry shape <- envelope(square(100));
-	point targ <- {0, 0};
+	file building_shapefile <- file("../includes/dummy.shp");
+	file boundbuilding_shapefile <- file("../includes/dummybound.shp");
+	geometry shape <- (boundbuilding_shapefile);
+	point targ <- {0.01945268876686025, 142.8984954995384};
 	//number of obstacles
 	int nb_obstacles <- 10 parameter: true;
 
@@ -22,8 +24,8 @@ global {
 	geometry free_space <- copy(shape);
 
 	init {
-		create obstacle number: nb_obstacles {
-			shape <- rectangle(2 + rnd(20), 2 + rnd(20));
+		create obstacle from:building_shapefile{//number: nb_obstacles {
+//			shape <- rectangle(2 + rnd(20), 2 + rnd(20));
 			free_space <- free_space - shape;
 		}
 
