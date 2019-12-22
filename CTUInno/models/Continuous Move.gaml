@@ -9,8 +9,8 @@ model ContinuousMove
 global {
 	file building_shapefile <- file("../includes/dummy.shp");
 	file boundbuilding_shapefile <- file("../includes/dummybound.shp");
-	geometry shape <- (boundbuilding_shapefile);
-	point targ <- {0.01945268876686025, 142.8984954995384};
+	geometry shape <- envelope(boundbuilding_shapefile);
+	point targ <- {0.6376229435038843, 136.93097410820067};
 	//number of obstacles
 	int nb_obstacles <- 10 parameter: true;
 
@@ -29,7 +29,7 @@ global {
 			free_space <- free_space - shape;
 		}
 
-		create people number: 1000 {
+		create people number: 500 {
 			location <- any_location_in(free_space);
 			mytarg <- targ;
 			//			free_space <- free_space - shape;
@@ -40,14 +40,15 @@ global {
 }
 
 species people skills: [moving] {
-	float spd <- 0.1;
-	geometry shape <- square(1);
+	float spd <- 0.5;
+	float size<-3.0;
+	geometry shape <- square(size);
 	int p1 <- 0;
 	int p2 <- 0;
 	point mytarg;
 
 	reflex moving {
-		people close1 <- one_of(((self neighbors_at 1) of_species people) sort_by (self distance_to each));
+		people close1 <- one_of(((self neighbors_at size) of_species people) sort_by (self distance_to each));
 		if close1 != nil {
 			p1 <- p1 + 1;
 			heading <- (self towards close1) - 180;
