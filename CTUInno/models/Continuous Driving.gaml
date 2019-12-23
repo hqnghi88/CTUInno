@@ -23,7 +23,7 @@ global {
 
 	//space where the agent can move.
 	geometry free_space <- copy(shape);
-	float seed <- 0.12;
+//	float seed <- 0.12;
 
 	init {
 		create obstacle from: building_shapefile { //number: nb_obstacles {
@@ -32,12 +32,12 @@ global {
 		}
 
 		geometry temp_free <- free_space;
-		create people number: 100 {
+		create people number: 200 {
 			location <- any_location_in(temp_free);
-			//			mytarg <- targ;
+						mytarg <- {targ.x,(targ.y-20)+(rnd(40))};
 			temp_free <- temp_free - (shape * 2);
-			heading<-self towards targ;
-//			do goto target: targ speed: spd;
+			heading <- self towards mytarg;
+			//			do goto target: targ speed: spd;
 		}
 
 	}
@@ -50,19 +50,28 @@ species people skills: [moving] {
 	geometry shape <- square(size);
 	//	int p1 <- 0;
 	//	int p2 <- 0;
-	//	point mytarg;
+		point mytarg;
 	geometry TL_area;
-	bool avoiding <- false;
 	float old_heading;
 
 	reflex moving {
 		TL_area <- ((cone(heading - 5, heading + 5) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
+		people close1 <- one_of(((self neighbors_at size)) sort_by (self distance_to each));
+		if close1 != nil {
+			old_heading <- heading;
+			heading <- (self towards close1) - 180;
+			loop times: 2 {
+				do move speed: spd heading: heading;
+			}
+
+			heading <- old_heading;
+		}
+
 		obstacle close <- one_of(((obstacle overlapping TL_area)) sort_by (self distance_to each));
 		if (close != nil) {
-			avoiding <- false;
 			float tmp_heading1 <- heading + 20;
 			float tmp_heading2 <- heading - 20;
-			geometry TL_area1 <- ((cone(tmp_heading1 - 5, tmp_heading1 + 5) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (tmp_heading1 + 90)));			 
+			geometry TL_area1 <- ((cone(tmp_heading1 - 5, tmp_heading1 + 5) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (tmp_heading1 + 90)));
 			geometry TL_area2 <- ((cone(tmp_heading2 - 5, tmp_heading2 + 5) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (tmp_heading2 + 90)));
 			obstacle close1 <- one_of(((obstacle overlapping TL_area1)) sort_by (self distance_to each));
 			obstacle close2 <- one_of(((obstacle overlapping TL_area2)) sort_by (self distance_to each));
@@ -75,30 +84,15 @@ species people skills: [moving] {
 			}
 
 		}
-		geometry l1<-line(location,targ);
-		if(length(obstacle overlapping l1)=0){
-			heading<-self towards targ;
+
+		geometry l1 <- line(location, mytarg);
+		if (length(obstacle overlapping l1) = 0) {
+			heading <- self towards mytarg;
 		}
+
 		do move speed: spd heading: heading;
-		if (location distance_to targ < 4) {
+		if (location distance_to mytarg < 4) {
 			do die;
-		}
-
-	}
-
-	reflex ss when: avoiding {
-		do move speed: spd heading: heading;
-		TL_area <- ((cone(heading - 5, heading + 5) intersection world.shape) intersection (circle(perception_distance)) - (shape rotated_by (heading + 90)));
-		people close1 <- one_of(((self neighbors_at size) of_species people) sort_by (self distance_to each));
-		if (close1 = nil) {
-			heading <- old_heading;
-			avoiding <- false;
-		}
-
-		obstacle close <- one_of(((obstacle overlapping TL_area)) sort_by (self distance_to each));
-		if (close = nil) {
-			heading <- old_heading;
-			avoiding <- false;
 		}
 
 	}
