@@ -29,7 +29,7 @@ global {
 			free_space <- free_space - shape;
 		}
 
-		create people number: 500 {
+		create people number: 150 {
 			location <- any_location_in(free_space);
 			mytarg <- targ;
 			//			free_space <- free_space - shape;
@@ -105,7 +105,7 @@ species obstacle {
 
 experiment traffic type: gui {
 	output {
-		display carte type: opengl synchronized: false {
+		display carte type: opengl synchronized: true {
 			species obstacle;
 			species people;
 		}
