@@ -3,12 +3,12 @@ model EvacuationInClassroom
 global {
 	int max <- 10;
 	//DImension of the grid agent
-	int nb_cols <- 300;
-	int nb_rows <- 300;
+	int nb_cols <- 500;
+	int nb_rows <- 500;
 	file roads_shapefile <- file("../includes/roads_LHP.shp");
 	geometry shape <- envelope(roads_shapefile);
 	list<cell> avai <- [];
-	float maxspd<-10.0;
+	float maxspd<-2.0;
 	init {
 		create road from: roads_shapefile {
 			old_shape <- copy(shape);
@@ -115,7 +115,7 @@ experiment "Continuous Driving" type: gui {
 			image file: "../includes/satellite.png" refresh: false;
 			grid cell refresh: false transparency:0.55;
 //									species road refresh: false;
-//			species people;
+			species people;
 		}
 
 	}
