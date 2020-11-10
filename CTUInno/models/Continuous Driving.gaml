@@ -3,28 +3,29 @@ model EvacuationInClassroom
 global {
 	int max <- 10;
 	//DImension of the grid agent
-	int nb_cols <- 500;
-	int nb_rows <- 500;
-	file roads_shapefile <- file("../includes/roads_LHP.shp");
+	int nb_cols <- 200;
+	int nb_rows <- 200;
+	file roads_shapefile <- file("../includes/roads_sample.shp");
 	geometry shape <- envelope(roads_shapefile);
 	list<cell> avai <- [];
-	float maxspd<-2.0;
+	float maxspd <- 2.0;
+
 	init {
 		create road from: roads_shapefile {
 			old_shape <- copy(shape);
-			shape <- shape + 2;
+			shape <- shape+1;
 			ask cell overlapping self {
 				color <- #lightgray;
 			}
 
 		}
-
+		//	save road to:"../includes/roads_sample.shp" type:shp;
 		ask cell where (each.color = #white) {
 			do die;
 		}
 		//		avai <- cell where (each.color = #white);
 		avai <- cell where (!dead(each));
-		create people number: 200 {
+		create people number: 500 {
 			location <- any_location_in(one_of(road).old_shape);
 			target <- any_location_in(one_of(road).old_shape);
 		}
@@ -94,7 +95,7 @@ species people skills: [moving] parallel: true {
 		} }
 
 	aspect default {
-		draw square(1) color: color;
+		draw square(0.5) color: color;
 	} }
 
 	//Grid species to discretize space
@@ -111,11 +112,19 @@ grid cell width: nb_cols height: nb_rows neighbors: 8 parallel: true schedules: 
 
 experiment "Continuous Driving" type: gui {
 	output {
+		layout #split;
 		display Main type: java2D synchronized: false { //camera_pos: {50.00000000000001,140.93835147797245,90.93835147797242} camera_look_pos: {50.0,50.0,0.0} camera_up_vector: {-4.3297802811774646E-17,0.7071067811865472,0.7071067811865478}{
 			image file: "../includes/satellite.png" refresh: false;
-			grid cell refresh: false transparency:0.55;
-//									species road refresh: false;
+			grid cell refresh: false transparency: 0.55;
+			//									species road refresh: false;
 			species people;
+		}
+
+		display "Statistic" {
+			chart "min speed" type: series {
+				data "jam " value: length((people where (each.real_speed < 1.0))) color: #red marker: false style: line;
+			}
+
 		}
 
 	}
